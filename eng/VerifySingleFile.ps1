@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)][string]$ExecutablePath,
     [string]$OutputDirectory
 )
@@ -23,20 +23,42 @@ $taskEnvironment = @{
 
 function Invoke-Probe([string]$Name, [string[]]$ProbeArguments) {
     $taskWatch = [System.Diagnostics.Stopwatch]::StartNew()
-    $taskProcess = Start-Process -FilePath $taskExecutable -ArgumentList $ProbeArguments -Environment $taskEnvironment -WorkingDirectory $taskIsolated.FullName -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput (Join-Path $taskRun.FullName "$Name.stdout") -RedirectStandardError (Join-Path $taskRun.FullName "$Name.stderr")
-    if ($taskProcess.ExitCode -ne 0) { throw "$Name failed with exit code $($taskProcess.ExitCode). See $($taskRun.FullName)." }
-    [pscustomobject]@{ Name = $Name; ExitCode = $taskProcess.ExitCode; ElapsedMs = $taskWatch.Elapsed.TotalMilliseconds }
+    $taskProcess = New-Object System.Diagnostics.Process
+    $taskProcess.StartInfo.FileName = $taskExecutable
+    $taskProcess.StartInfo.Arguments = $ProbeArguments -join ' '
+    $taskProcess.StartInfo.WorkingDirectory = $taskIsolated.FullName
+    $taskProcess.StartInfo.UseShellExecute = $false
+    $taskProcess.StartInfo.CreateNoWindow = $true
+    $taskProcess.StartInfo.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+    $taskProcess.StartInfo.RedirectStandardOutput = $true
+    $taskProcess.StartInfo.RedirectStandardError = $true
+    foreach ($taskVariable in $taskEnvironment.Keys) {
+        $taskProcess.StartInfo.EnvironmentVariables[$taskVariable] = $taskEnvironment[$taskVariable]
+    }
+    try {
+        if (!$taskProcess.Start()) { throw "Could not start $Name." }
+        $taskOutput = $taskProcess.StandardOutput.ReadToEndAsync()
+        $taskError = $taskProcess.StandardError.ReadToEndAsync()
+        $taskProcess.WaitForExit()
+        [IO.File]::WriteAllText((Join-Path $taskRun.FullName "$Name.stdout"), $taskOutput.GetAwaiter().GetResult())
+        [IO.File]::WriteAllText((Join-Path $taskRun.FullName "$Name.stderr"), $taskError.GetAwaiter().GetResult())
+        if ($taskProcess.ExitCode -ne 0) { throw "$Name failed with exit code $($taskProcess.ExitCode). See $($taskRun.FullName)." }
+        [pscustomobject]@{ Name = $Name; ExitCode = $taskProcess.ExitCode; ElapsedMs = $taskWatch.Elapsed.TotalMilliseconds }
+    }
+    finally {
+        $taskProcess.Dispose()
+    }
 }
 
 $taskColdPath = Join-Path $taskRun.FullName 'cold.json'
 $taskExecutions = @()
 $taskExecutions += Invoke-Probe 'cold' @('--distribution-probe', ('"{0}"' -f $taskColdPath))
-$taskCold = Get-Content -LiteralPath $taskColdPath -Raw | ConvertFrom-Json
+$taskCold = Get-Content -LiteralPath $taskColdPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $taskCacheBefore = @(Get-ChildItem -LiteralPath $taskCache.FullName -Recurse -File | ForEach-Object { "$($_.FullName):$($_.Length):$($_.LastWriteTimeUtc.Ticks)" })
 if ($taskCacheBefore.Count -eq 0) { throw 'No native libraries were extracted.' }
 $taskWarmPath = Join-Path $taskRun.FullName 'warm.json'
 $taskExecutions += Invoke-Probe 'warm' @('--distribution-probe', ('"{0}"' -f $taskWarmPath))
-$taskWarm = Get-Content -LiteralPath $taskWarmPath -Raw | ConvertFrom-Json
+$taskWarm = Get-Content -LiteralPath $taskWarmPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $taskCacheAfter = @(Get-ChildItem -LiteralPath $taskCache.FullName -Recurse -File | ForEach-Object { "$($_.FullName):$($_.Length):$($_.LastWriteTimeUtc.Ticks)" })
 if (@(Compare-Object $taskCacheBefore $taskCacheAfter).Count -ne 0) { throw 'The warm launch rewrote the native extraction cache.' }
 if (!$taskCold.Passed -or !$taskWarm.Passed) { throw 'Offline OCR verification failed.' }
@@ -51,8 +73,8 @@ $taskExecutions += Invoke-Probe 'settings' @('--settings-probe', ('"{0}"' -f $ta
 $taskExecutions += Invoke-Probe 'capture' @('--capture-probe', ('"{0}"' -f $taskCapturePath), '--verify-freshness')
 $taskExecutions += Invoke-Probe 'render' @('--render-probe', ('"{0}"' -f $taskRenderPath))
 $taskExecutions += Invoke-Probe 'licenses' @('--export-licenses', ('"{0}"' -f $taskLicenses))
-if (!(Get-Content -LiteralPath $taskSettingsPath -Raw | ConvertFrom-Json).Passed) { throw 'Native UI verification failed.' }
-$taskCaptures = @(Get-Content -LiteralPath $taskCapturePath -Raw | ConvertFrom-Json)
+if (!(Get-Content -LiteralPath $taskSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json).Passed) { throw 'Native UI verification failed.' }
+$taskCaptures = Get-Content -LiteralPath $taskCapturePath -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($taskCaptures.Count -ne 4 -or @($taskCaptures | Where-Object { !$_.Passed }).Count -ne 0) { throw 'DXGI freshness verification failed.' }
 foreach ($taskLicense in @(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'LICENSES') -File) + @(Get-Item -LiteralPath (Join-Path $taskRoot 'THIRD-PARTY-NOTICES.md'))) {
     $taskExported = Join-Path $taskLicenses $taskLicense.Name

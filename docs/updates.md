@@ -7,7 +7,7 @@ Install the Windows amd64 MSI from [GitHub CLI releases](https://github.com/cli/
 Login and publication use GitHub CLI's saved credentials. `GH_TOKEN` and `GITHUB_TOKEN` are excluded only while running GitHub CLI and Git commands, then restored even on failure. Windows environment settings are unchanged.
 
 1. Set a new stable `<Version>` (`X.Y.Z`) in `src/Kadr.Desktop/Kadr.Desktop.csproj` and commit the changes.
-2. Run `./eng/Release.ps1` in PowerShell 7.2+.
+2. Run `./eng/Release.ps1` in Windows PowerShell 5.1 or PowerShell 7.
 
 The script tests, builds, signs and verifies the single-file EXE, pushes the current branch and `v{version}` tag to `origin`, uploads the EXE, SHA-256 and signature, verifies the uploaded hashes, then publishes a stable GitHub Release in `Krivodel/Kadr`. Release notes are generated from GitHub; use `-NotesFile ./notes.md` for your own notes or `-CrtDirectory` for a custom CRT directory. `-WhatIf` previews the operation without building or publishing.
 

@@ -1,4 +1,4 @@
-#requires -Version 7.2
+#requires -Version 5.1
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $projectRoot = Split-Path $PSScriptRoot -Parent
