@@ -1,5 +1,7 @@
 **English** | [Русский](Readme.ru.md)
 
+[![Download for Windows](https://badgen.net/badge/icon/Download%20for%20Windows?icon=windows&label)](https://github.com/Krivodel/Kadr/releases/latest/download/Kadr-win-x64.exe)
+
 # <img src="src/Kadr.Desktop/Assets/AppIcon.png" alt="Kadr" width="32" height="32"> Kadr
 
 Screenshot tool for Windows 10 1809+ / Windows 11, x64.
