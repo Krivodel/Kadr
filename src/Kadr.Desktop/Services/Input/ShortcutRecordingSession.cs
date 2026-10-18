@@ -11,20 +11,32 @@ internal sealed class ShortcutRecordingSession
     private readonly Action<ShortcutGesture> _recorded;
     private readonly Action _cleared;
     private readonly Action _clearReleased;
+    private readonly ShortcutRecordingMode _mode;
     private ShortcutGesture? _pending;
+    private ShortcutGesture? _pendingModifier;
     private TimeSpan? _spacePressed;
     private bool _completed;
 
-    internal ShortcutRecordingSession(Action<ShortcutGesture> recorded, Action cleared, Action clearReleased)
+    internal ShortcutRecordingSession(Action<ShortcutGesture> recorded, Action cleared, Action clearReleased,
+        ShortcutRecordingMode mode = ShortcutRecordingMode.Command)
     {
         _recorded = recorded ?? throw new ArgumentNullException(nameof(recorded));
         _cleared = cleared ?? throw new ArgumentNullException(nameof(cleared));
         _clearReleased = clearReleased ?? throw new ArgumentNullException(nameof(clearReleased));
+        _mode = mode;
     }
 
     internal bool Press(ShortcutGesture gesture, TimeSpan timestamp)
     {
-        if (gesture.Key is 0 or 0x10 or 0x11 or 0x12 or 0x5b or 0x5c or >= 0xa0 and <= 0xa5)
+        if (ShortcutKey.GetModifier(gesture.Key) != ShortcutModifiers.None)
+        {
+            if (_mode == ShortcutRecordingMode.Hold && !_completed && _pending is null)
+            {
+                _pendingModifier = ShortcutKey.Normalize(gesture);
+            }
+            return false;
+        }
+        if (gesture.Key == 0)
         {
             return false;
         }
@@ -47,6 +59,12 @@ internal sealed class ShortcutRecordingSession
 
     internal bool Release(int key, TimeSpan timestamp)
     {
+        if (_pending is null && !_completed && _pendingModifier is ShortcutGesture modifier && modifier.Key == ShortcutKey.Normalize(key))
+        {
+            _completed = true;
+            _recorded(modifier);
+            return false;
+        }
         if (_pending is not ShortcutGesture pending || pending.Key != key)
         {
             return false;

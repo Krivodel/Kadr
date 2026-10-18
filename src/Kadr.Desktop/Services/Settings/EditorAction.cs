@@ -21,5 +21,6 @@ public enum EditorAction
     Cancel,
     Select,
     SelectAll,
-    Delete
+    Delete,
+    Preview
 }

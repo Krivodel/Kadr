@@ -19,8 +19,15 @@ internal static class KeyboardGestures
 
     internal static bool Matches(KeyEventArgs arguments, ShortcutGesture shortcut)
     {
-        return !shortcut.IsEmpty && (KeyInterop.VirtualKeyFromKey(arguments.Key) == shortcut.Key)
-            && (GetModifiers(arguments.KeyModifiers) == shortcut.Modifiers);
+        return !shortcut.IsEmpty && ShortcutKey.Normalize(FromKey(arguments)) == shortcut;
+    }
+
+    internal static bool IsHeld(ShortcutGesture shortcut, Func<int, bool> isKeyDown)
+    {
+        ShortcutModifiers modifier = ShortcutKey.GetModifier(shortcut.Key);
+        return !shortcut.IsEmpty && isKeyDown(shortcut.Key)
+            && ((modifier != ShortcutModifiers.None && shortcut.Modifiers == ShortcutModifiers.None)
+                || (NativeModifiers.Get(isKeyDown) & ~modifier) == shortcut.Modifiers);
     }
 
     internal static bool Matches(KeyEventArgs arguments, AppSettings settings, EditorAction action)

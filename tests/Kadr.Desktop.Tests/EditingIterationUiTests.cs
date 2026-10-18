@@ -122,7 +122,7 @@ public sealed class EditingIterationUiTests
             using EditorViewModel model = EditorViewModelTests.Create(new EditorTestServices(), TestDocuments.Create(1280, 800));
             model.Document.SetSelection(new PixelRectangle(200, 200, 700, 350));
             model.Interaction.Tool = DrawingToolId.Arrow;
-            EditorWindow window = new(model, model.Document.Desktop.Monitors[0], store, () => alt);
+            EditorWindow window = new(model, model.Document.Desktop.Monitors[0], store, key => key == 0x12 && alt);
             window.Show();
             window.Activate();
             await UiTestSession.PumpFramesAsync(80);
@@ -139,6 +139,73 @@ public sealed class EditingIterationUiTests
             Assert.False(model.IsPreview);
             Assert.Equal(DrawingToolId.Arrow, model.Interaction.Tool);
             window.Close();
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Preview_CustomBindingAppliedToOpenEditor_UsesHeldKeyAndIgnoresTextInput()
+    {
+        await using HeadlessUnitTestSession session = HeadlessUnitTestSession.StartNew(typeof(UiTestSession));
+        await session.Dispatch(async () =>
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "Kadr-preview-" + Guid.NewGuid().ToString("N"));
+            SettingsStore store = new(NullLogger<SettingsStore>.Instance, Path.Combine(directory, "settings.json"));
+            HashSet<int> pressed = [];
+            using EditorViewModel model = EditorViewModelTests.Create(new EditorTestServices(), TestDocuments.Create(1280, 800), store);
+            model.Document.SetSelection(new PixelRectangle(200, 200, 700, 350));
+            model.Interaction.Tool = DrawingToolId.Arrow;
+            EditorWindow window = new(model, model.Document.Desktop.Monitors[0], store, pressed.Contains);
+            try
+            {
+                window.Show();
+                window.Activate();
+                await UiTestSession.PumpFramesAsync(80);
+                await store.UpdateAsync(current => current with
+                {
+                    EditorShortcuts = new Dictionary<EditorAction, ShortcutGesture>
+                    {
+                        [EditorAction.Preview] = new ShortcutGesture(0x77, ShortcutModifiers.Control)
+                    },
+                    AlternativeShortcuts = new Dictionary<EditorAction, ShortcutGesture?>
+                    {
+                        [EditorAction.Preview] = new ShortcutGesture(0x10, ShortcutModifiers.None)
+                    }
+                }, CancellationToken.None);
+
+                pressed.Add(0x12);
+                await UiTestSession.PumpFramesAsync(80);
+                Assert.False(model.IsPreview);
+                pressed.Clear();
+                pressed.Add(0x77);
+                pressed.Add(0x11);
+                await UiTestSession.WaitForAsync(() => model.IsPreview);
+                Assert.Equal(DrawingToolId.Arrow, model.Interaction.Tool);
+                pressed.Remove(0x11);
+                await UiTestSession.WaitForAsync(() => !model.IsPreview);
+                pressed.Clear();
+                pressed.Add(0x10);
+                await UiTestSession.WaitForAsync(() => model.IsPreview);
+                pressed.Clear();
+                await UiTestSession.WaitForAsync(() => !model.IsPreview);
+
+                window.KeyPress(Key.T, RawInputModifiers.None, PhysicalKey.T, "t");
+                window.MouseDown(new Point(300, 300), MouseButton.Left);
+                window.MouseUp(new Point(300, 300), MouseButton.Left);
+                TextBox text = window.FindControl<TextBox>("TextEntry") ?? throw new InvalidOperationException();
+                Assert.True(text.IsVisible);
+                pressed.Add(0x10);
+                await UiTestSession.PumpFramesAsync(80);
+                Assert.False(model.IsPreview);
+            }
+            finally
+            {
+                window.Close();
+                if (Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, true);
+                }
+            }
             return true;
         }, CancellationToken.None);
     }

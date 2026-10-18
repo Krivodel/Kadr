@@ -30,7 +30,7 @@ public sealed partial class EditorWindow : Window
     private readonly SettingsStore _settings;
     private readonly DispatcherTimer _modifiers;
     private readonly WheelSizeAnimator _wheelSizeAnimator;
-    private readonly Func<bool> _isAltPressed;
+    private readonly Func<int, bool> _isKeyDown;
     private Button[] _toolButtons = Array.Empty<Button>();
     private (PixelRectangle Selection, Size ClientSize, double Scale)? _layoutState;
     private PixelPoint? _thicknessOrigin;
@@ -47,12 +47,12 @@ public sealed partial class EditorWindow : Window
     private bool _isClosing;
     private bool _ownsUpdatePopup;
 
-    public EditorWindow(EditorViewModel model, DesktopMonitor monitor, SettingsStore settings, Func<bool>? isAltPressed = null)
+    public EditorWindow(EditorViewModel model, DesktopMonitor monitor, SettingsStore settings, Func<int, bool>? isKeyDown = null)
     {
         _model = model;
         _monitor = monitor;
         _settings = settings;
-        _isAltPressed = isAltPressed ?? (() => NativeDesktop.IsKeyDown(0x12));
+        _isKeyDown = isKeyDown ?? NativeDesktop.IsKeyDown;
         InitializeComponent();
         _wheelSizeAnimator = new WheelSizeAnimator(this, model, RefreshWheelSize);
         DataContext = model;
@@ -743,7 +743,8 @@ public sealed partial class EditorWindow : Window
     private void OnModifierTick(object? sender, EventArgs arguments)
     {
         bool preview = IsActive && !_textEditing && !_isPaletteOpen && _model.Updates?.IsOpen != true && (_thicknessOrigin is null)
-            && !_model.Interaction.IsGestureActive && _isAltPressed();
+            && !_model.Interaction.IsGestureActive && ShortcutCatalog.GetBindings(_settings.Current, EditorAction.Preview)
+                .Any(shortcut => KeyboardGestures.IsHeld(shortcut, _isKeyDown));
 
         if (_model.IsPreview != preview)
         {

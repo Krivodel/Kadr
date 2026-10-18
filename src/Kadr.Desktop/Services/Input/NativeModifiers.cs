@@ -5,22 +5,23 @@ namespace Kadr.Desktop.Services.Input;
 
 internal static class NativeModifiers
 {
-    internal static ShortcutModifiers Get()
+    internal static ShortcutModifiers Get(Func<int, bool>? isKeyDown = null)
     {
+        isKeyDown ??= NativeDesktop.IsKeyDown;
         ShortcutModifiers modifiers = ShortcutModifiers.None;
-        if (NativeDesktop.IsKeyDown(0x11))
+        if (isKeyDown(0x11))
         {
             modifiers |= ShortcutModifiers.Control;
         }
-        if (NativeDesktop.IsKeyDown(0x12))
+        if (isKeyDown(0x12))
         {
             modifiers |= ShortcutModifiers.Alt;
         }
-        if (NativeDesktop.IsKeyDown(0x10))
+        if (isKeyDown(0x10))
         {
             modifiers |= ShortcutModifiers.Shift;
         }
-        if (NativeDesktop.IsKeyDown(0x5b) || NativeDesktop.IsKeyDown(0x5c))
+        if (isKeyDown(0x5b) || isKeyDown(0x5c))
         {
             modifiers |= ShortcutModifiers.Windows;
         }

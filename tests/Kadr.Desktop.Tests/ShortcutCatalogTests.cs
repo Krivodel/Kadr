@@ -45,6 +45,7 @@ public sealed class ShortcutCatalogTests
 
         Assert.Null(ShortcutPolicy.GetError(settings));
         Assert.Equal(0x43, ShortcutCatalog.Get(settings, EditorAction.Cursor).Key);
+        Assert.Equal(new ShortcutGesture(0x12, ShortcutModifiers.None), ShortcutCatalog.Get(settings, EditorAction.Preview));
         Assert.Equal(0x31, ShortcutCatalog.Get(settings, EditorAction.Arrow).Key);
         Assert.Equal(new ShortcutGesture(0x54, ShortcutModifiers.Control), ShortcutCatalog.Get(settings, EditorAction.Recognize));
     }

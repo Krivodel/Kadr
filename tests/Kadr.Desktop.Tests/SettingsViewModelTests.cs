@@ -28,6 +28,8 @@ public sealed class SettingsViewModelTests
         model.ToolbarItems.Single(item => item.Id == ToolbarItemId.Arrow).IsVisible = false;
         Assert.DoesNotContain(model.ToolbarItems, item => item.Id == ToolbarItemId.Settings);
         model.Shortcuts.Single(row => row.Action == EditorAction.Arrow).Gesture = new ShortcutGesture(0x71, ShortcutModifiers.None);
+        model.Shortcuts.Single(row => row.Action == EditorAction.Preview).Gesture = new ShortcutGesture(0x77, ShortcutModifiers.Control);
+        model.Shortcuts.Single(row => row.Action == EditorAction.Preview).AlternativeGesture = new ShortcutGesture(0x10, ShortcutModifiers.None);
         model.Shortcuts.Single(row => row.Action == EditorAction.Delete).Gesture = new ShortcutGesture(0x72, ShortcutModifiers.None);
         model.Shortcuts.Single(row => row.Action == EditorAction.Delete).AlternativeGesture = new ShortcutGesture(4, ShortcutModifiers.Control);
 
@@ -53,6 +55,8 @@ public sealed class SettingsViewModelTests
             Assert.Equal(ScreenshotFormat.Jpeg, services.CopiedFormat);
             Assert.Equal(ColorPickerTab.Hsl, reloaded.Current.ColorPickerTab);
             Assert.Equal(0x71, ShortcutCatalog.Get(reloaded.Current, EditorAction.Arrow).Key);
+            Assert.Equal(new ShortcutGesture(0x77, ShortcutModifiers.Control), ShortcutCatalog.Get(reloaded.Current, EditorAction.Preview));
+            Assert.Equal(new ShortcutGesture(0x10, ShortcutModifiers.None), ShortcutCatalog.GetAlternative(reloaded.Current, EditorAction.Preview));
             Assert.Equal(0x72, ShortcutCatalog.Get(reloaded.Current, EditorAction.Delete).Key);
             Assert.Equal(new ShortcutGesture(4, ShortcutModifiers.Control), ShortcutCatalog.GetAlternative(reloaded.Current, EditorAction.Delete));
             Assert.False(reloaded.Current.ShowCursor);

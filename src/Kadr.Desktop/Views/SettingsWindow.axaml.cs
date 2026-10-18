@@ -167,7 +167,9 @@ public sealed partial class SettingsWindow : Window
 
             try
             {
-                ShortcutRecordingSession session = new(ApplyShortcut, ClearShortcut, CancelRecording);
+                ShortcutRecordingMode mode = button.DataContext is ShortcutBindingViewModel { Action: EditorAction.Preview }
+                    ? ShortcutRecordingMode.Hold : ShortcutRecordingMode.Command;
+                ShortcutRecordingSession session = new(ApplyShortcut, ClearShortcut, CancelRecording, mode);
                 _recorder = new ShortcutRecorder(session);
                 ShowRecordingHint(button);
                 RequestAnimationFrame(timestamp => UpdateRecordingHint(session));

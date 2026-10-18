@@ -20,6 +20,7 @@ public static class ShortcutCatalog
         new(EditorAction.Number, "Kadr.Numbering", new ShortcutGesture(0x4e, ShortcutModifiers.None), DrawingToolId.Number),
         new(EditorAction.Blur, "Kadr.Blur", new ShortcutGesture(0x42, ShortcutModifiers.None), DrawingToolId.Blur),
         new(EditorAction.Cursor, "Kadr.ToggleCursor", new ShortcutGesture(0x43, ShortcutModifiers.None)),
+        new(EditorAction.Preview, "Kadr.ScreenshotPreview", new ShortcutGesture(0x12, ShortcutModifiers.None)),
         new(EditorAction.Copy, "Kadr.Copy", new ShortcutGesture(0x43, ShortcutModifiers.Control)),
         new(EditorAction.Save, "Kadr.SaveAs", new ShortcutGesture(0x53, ShortcutModifiers.Control), DefaultAlternative: new ShortcutGesture(0x53, ShortcutModifiers.Control | ShortcutModifiers.Shift)),
         new(EditorAction.Recognize, "Kadr.Recognize", new ShortcutGesture(0x54, ShortcutModifiers.Control)),
