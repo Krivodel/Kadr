@@ -118,7 +118,7 @@ public sealed class EditingIterationUiTests
         await session.Dispatch(async () =>
         {
             bool alt = false;
-            SettingsStore store = new(NullLogger<SettingsStore>.Instance);
+            SettingsStore store = UiTestSession.CreateSettingsStore();
             using EditorViewModel model = EditorViewModelTests.Create(new EditorTestServices(), TestDocuments.Create(1280, 800));
             model.Document.SetSelection(new PixelRectangle(200, 200, 700, 350));
             model.Interaction.Tool = DrawingToolId.Arrow;
@@ -246,7 +246,7 @@ public sealed class EditingIterationUiTests
         await session.Dispatch(async () =>
         {
             using HttpClient http = new();
-            SettingsStore store = new(NullLogger<SettingsStore>.Instance);
+            SettingsStore store = UiTestSession.CreateSettingsStore();
             SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model };
             window.Show();

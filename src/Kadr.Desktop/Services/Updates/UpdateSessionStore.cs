@@ -9,7 +9,7 @@ public sealed class UpdateSessionStore
 
     public UpdateSessionStore(string? directory = null)
     {
-        _directory = directory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Kadr", "UpdateSession");
+        _directory = directory ?? ApplicationDataPaths.Default.UpdateSessionDirectory;
     }
 
     public async Task<string> SaveAsync(EditorSessionSnapshot snapshot, CancellationToken ct)

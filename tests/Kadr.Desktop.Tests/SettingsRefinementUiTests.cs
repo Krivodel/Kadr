@@ -33,7 +33,7 @@ public sealed class SettingsRefinementUiTests
         await session.Dispatch(async () =>
         {
             using HttpClient http = new();
-            SettingsViewModel model = new(new SettingsStore(NullLogger<SettingsStore>.Instance), new TestSettingsApplication(),
+            SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
                 new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model };
             try
@@ -79,7 +79,7 @@ public sealed class SettingsRefinementUiTests
         await session.Dispatch(async () =>
         {
             using HttpClient http = new();
-            SettingsStore store = new(NullLogger<SettingsStore>.Instance);
+            SettingsStore store = UiTestSession.CreateSettingsStore();
             SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
             ShortcutBindingViewModel binding = model.Shortcuts.Single(row => row.Action == EditorAction.Save);
             ShortcutGesture originalPrimary = binding.Gesture;
@@ -173,7 +173,7 @@ public sealed class SettingsRefinementUiTests
         await session.Dispatch(async () =>
         {
             using HttpClient http = new();
-            SettingsViewModel model = new(new SettingsStore(NullLogger<SettingsStore>.Instance), new TestSettingsApplication(),
+            SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
                 new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model, Height = 600 };
             try
@@ -216,7 +216,7 @@ public sealed class SettingsRefinementUiTests
         await session.Dispatch(async () =>
         {
             using HttpClient http = new();
-            SettingsViewModel model = new(new SettingsStore(NullLogger<SettingsStore>.Instance), new TestSettingsApplication(),
+            SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
                 new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model, Width = width, Height = 600 };
             try

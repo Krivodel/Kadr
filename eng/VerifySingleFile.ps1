@@ -22,7 +22,15 @@ $taskEnvironment = @{
     PATH = "$env:SystemRoot\System32;$env:SystemRoot"
 }
 
+function Get-UserSettingsFingerprint {
+    $taskUserSettings = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Kadr/settings.json'
+    if (!(Test-Path -LiteralPath $taskUserSettings)) { return 'missing' }
+    $taskFile = Get-Item -LiteralPath $taskUserSettings
+    return '{0}:{1}:{2}' -f $taskFile.Length, $taskFile.LastWriteTimeUtc.Ticks, (Get-FileHash -LiteralPath $taskUserSettings -Algorithm SHA256).Hash
+}
+
 function Invoke-Probe([string]$Name, [string[]]$ProbeArguments) {
+    $taskSettingsBefore = Get-UserSettingsFingerprint
     $taskWatch = [System.Diagnostics.Stopwatch]::StartNew()
     $taskProcess = New-ProbeProcess -Executable $taskExecutable -Arguments $ProbeArguments -WorkingDirectory $taskIsolated.FullName -ProcessEnvironment $taskEnvironment
     try {
@@ -32,6 +40,7 @@ function Invoke-Probe([string]$Name, [string[]]$ProbeArguments) {
         $taskProcess.WaitForExit()
         [IO.File]::WriteAllText((Join-Path $taskRun.FullName "$Name.stdout"), $taskOutput.GetAwaiter().GetResult())
         [IO.File]::WriteAllText((Join-Path $taskRun.FullName "$Name.stderr"), $taskError.GetAwaiter().GetResult())
+        if ((Get-UserSettingsFingerprint) -cne $taskSettingsBefore) { throw "User settings changed during $Name. Verification must not modify the user profile." }
         if ($taskProcess.ExitCode -ne 0) { throw "$Name failed with exit code $($taskProcess.ExitCode). See $($taskRun.FullName)." }
         [pscustomobject]@{ Name = $Name; ExitCode = $taskProcess.ExitCode; ElapsedMs = $taskWatch.Elapsed.TotalMilliseconds }
     }
@@ -59,11 +68,17 @@ $taskSettingsPath = Join-Path $taskRun.FullName 'settings.json'
 $taskCapturePath = Join-Path $taskRun.FullName 'capture.json'
 $taskRenderPath = Join-Path $taskRun.FullName 'render.json'
 $taskLicenses = Join-Path $taskRun.FullName 'Licenses'
+$taskProfileDirectory = New-Item -ItemType Directory -Force -Path ($taskSettingsPath + '.data')
+$taskProfileSettings = Join-Path $taskProfileDirectory.FullName 'settings.json'
+[IO.File]::WriteAllText($taskProfileSettings, '{"Thickness":23,"Color":4279383126,"AutoStart":false}', [Text.UTF8Encoding]::new($false))
 $taskExecutions += Invoke-Probe 'settings' @('--settings-probe', ('"{0}"' -f $taskSettingsPath))
 $taskExecutions += Invoke-Probe 'capture' @('--capture-probe', ('"{0}"' -f $taskCapturePath), '--verify-freshness')
 $taskExecutions += Invoke-Probe 'render' @('--render-probe', ('"{0}"' -f $taskRenderPath))
 $taskExecutions += Invoke-Probe 'licenses' @('--export-licenses', ('"{0}"' -f $taskLicenses))
 if (!(Get-Content -LiteralPath $taskSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json).Passed) { throw 'Native UI verification failed.' }
+if (!(Test-Path -LiteralPath $taskProfileSettings)) { throw 'Native settings verification did not write to its isolated profile.' }
+$taskSavedProfile = Get-Content -LiteralPath $taskProfileSettings -Raw -Encoding UTF8 | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($taskSavedProfile.LocalizationId) -or $taskSavedProfile.Thickness -ne 23 -or $taskSavedProfile.Color -ne 4279383126 -or $taskSavedProfile.AutoStart -ne $false) { throw 'Native settings verification did not preserve its isolated profile preferences.' }
 $taskCaptures = Get-Content -LiteralPath $taskCapturePath -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($taskCaptures.Count -ne 4 -or @($taskCaptures | Where-Object { !$_.Passed }).Count -ne 0) { throw 'DXGI freshness verification failed.' }
 foreach ($taskLicense in @(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'LICENSES') -File) + @(Get-Item -LiteralPath (Join-Path $taskRoot 'THIRD-PARTY-NOTICES.md'))) {
@@ -80,6 +95,7 @@ $taskResult = [pscustomobject]@{
     OfflineOcr = $true
     NativeDependenciesFromBundle = $true
     IsolatedDirectoryContainsOnlyExe = $true
+    UserSettingsUnchanged = $true
     RunDirectory = $taskRun.FullName
     Probes = $taskExecutions
 }

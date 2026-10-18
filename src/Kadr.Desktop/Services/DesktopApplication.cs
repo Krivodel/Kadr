@@ -337,11 +337,13 @@ internal sealed class DesktopApplication : IAsyncDisposable
         ShowSettings(null);
     }
 
-    internal Task RunSettingsProbeAsync(string path, CancellationToken ct)
+    internal async Task RunSettingsProbeAsync(string path, CancellationToken ct)
     {
         _tray.IsVisible = false;
+        await _settings.LoadAsync(ct);
+        await _localization.RefreshAvailableLocalizationsAsync(ct);
         _localization.ReconcileCurrentOrSystemDefault();
-        return Diagnostics.SettingsWindowProbe.RunAsync(_createSettings(true), path, ct);
+        await Diagnostics.SettingsWindowProbe.RunAsync(_createSettings(true), path, ct);
     }
 
     private void OnSettingsChanged(object? sender, EventArgs arguments)

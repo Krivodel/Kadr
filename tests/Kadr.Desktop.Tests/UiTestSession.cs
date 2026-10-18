@@ -22,6 +22,12 @@ internal static class UiTestSession
         return store;
     }
 
+    internal static SettingsStore CreateSettingsStore()
+    {
+        return new SettingsStore(NullLogger<SettingsStore>.Instance,
+            Path.Combine(Path.GetTempPath(), "Kadr-ui-settings-" + Guid.NewGuid().ToString("N"), "settings.json"));
+    }
+
     public static AppBuilder BuildAvaloniaApp()
     {
         return AppBuilder.Configure<App>().UseSkia().UseHarfBuzz()
@@ -29,7 +35,7 @@ internal static class UiTestSession
     }
     internal static EditorWindow CreateEditorWindow(EditorViewModel model, SettingsStore? settings = null)
     {
-        return new EditorWindow(model, model.Document.Desktop.Monitors[0], settings ?? new SettingsStore(NullLogger<SettingsStore>.Instance));
+        return new EditorWindow(model, model.Document.Desktop.Monitors[0], settings ?? CreateSettingsStore());
     }
 
     internal static SKBitmap CapturePixels(TopLevel window)

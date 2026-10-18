@@ -7,9 +7,9 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     private readonly StreamWriter _writer;
     private readonly object _gate = new();
 
-    internal FileLoggerProvider()
+    internal FileLoggerProvider(string? directory = null)
     {
-        string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Kadr", "logs");
+        directory ??= ApplicationDataPaths.Default.LogsDirectory;
         Directory.CreateDirectory(directory);
         _writer = new StreamWriter(new FileStream(Path.Combine(directory, DateTime.UtcNow.ToString("yyyy-MM-dd") + ".log"),
             FileMode.Append, FileAccess.Write, FileShare.ReadWrite))

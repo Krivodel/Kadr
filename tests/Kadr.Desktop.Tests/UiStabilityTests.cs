@@ -92,7 +92,7 @@ public sealed class UiStabilityTests
         await session.Dispatch(async () =>
         {
             using HttpClient http = new();
-            SettingsViewModel model = new(new SettingsStore(NullLogger<SettingsStore>.Instance), new TestSettingsApplication(),
+            SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
                 new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
             model.Section = SettingsSection.Shortcuts;
             model.ShortcutQuery = model.Shortcuts[1].Name;

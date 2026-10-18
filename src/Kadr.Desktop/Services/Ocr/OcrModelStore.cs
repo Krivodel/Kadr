@@ -20,7 +20,7 @@ public sealed class OcrModelStore
     private readonly HttpClient _http;
 
     public OcrModelStore(HttpClient http)
-        : this(http, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Kadr", "tessdata"))
+        : this(http, ApplicationDataPaths.Default.OcrDirectory)
     {
     }
 

@@ -36,11 +36,12 @@ public sealed partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime)
         {
+            ApplicationDataPaths paths = ApplicationDataPaths.FromArguments(lifetime.Args ?? Array.Empty<string>());
             ServiceCollection services = new();
-            services.AddLogging(builder => builder.SetMinimumLevel(FileLogger.MinimumLevel).AddProvider(new FileLoggerProvider()));
-            services.AddSingleton<SettingsStore>();
+            services.AddLogging(builder => builder.SetMinimumLevel(FileLogger.MinimumLevel).AddProvider(new FileLoggerProvider(paths.LogsDirectory)));
+            services.AddSingleton(provider => new SettingsStore(provider.GetRequiredService<ILogger<SettingsStore>>(), paths.SettingsFile));
             services.AddSingleton<ILocalizationService>(provider => new LocalizationService(
-                new DirectoryLocalizationFileStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Kadr", "Localizations")),
+                new DirectoryLocalizationFileStore(paths.LocalizationsDirectory),
                 UiText.Catalog, provider.GetRequiredService<ILogger<LocalizationService>>()));
             services.AddSingleton<GlobalHotkeyService>();
             services.AddSingleton<MonitorCaptureFactory>();
@@ -50,9 +51,9 @@ public sealed partial class App : Application
             services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromMinutes(5) });
             services.AddHttpClient("Updates", client => client.Timeout = TimeSpan.FromHours(1));
             services.AddSingleton<IUpdateService>(provider => new GitHubUpdateService(provider.GetRequiredService<IHttpClientFactory>().CreateClient("Updates")));
-            services.AddSingleton(new UpdateSessionStore());
+            services.AddSingleton(new UpdateSessionStore(paths.UpdateSessionDirectory));
             services.AddSingleton<IViewModelErrorHandler, UpdateErrorHandler>();
-            services.AddSingleton<OcrModelStore>();
+            services.AddSingleton(provider => new OcrModelStore(provider.GetRequiredService<HttpClient>(), paths.OcrDirectory));
             services.AddSingleton<IOcrService, TesseractOcrService>();
             services.AddSingleton(new DrawingToolRegistry());
             services.AddSingleton<IClipboardWriter, WindowsClipboardWriter>();

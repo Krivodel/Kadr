@@ -13,9 +13,12 @@ public sealed class SettingsStore
     private readonly ILogger<SettingsStore> _logger;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly string _path;
+    private SettingsDocument? _document;
+    private Exception? _loadFailure;
+    private bool _isLoaded;
 
     public SettingsStore(ILogger<SettingsStore> logger)
-        : this(logger, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Kadr", "settings.json"))
+        : this(logger, ApplicationDataPaths.Default.SettingsFile)
     {
     }
 
@@ -27,37 +30,19 @@ public sealed class SettingsStore
 
     public async Task LoadAsync(CancellationToken ct)
     {
+        await _writeLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (File.Exists(_path))
-            {
-                string json = await File.ReadAllTextAsync(_path, ct).ConfigureAwait(false);
-                AppSettings candidate = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
-                using JsonDocument document = JsonDocument.Parse(json);
-                if ((document.RootElement.ValueKind == JsonValueKind.Object)
-                    && !document.RootElement.TryGetProperty(nameof(AppSettings.EditorShortcuts), out _)
-                    && (candidate.CursorShortcut == new ShortcutGesture(0x48, ShortcutModifiers.None)))
-                {
-                    candidate = candidate with
-                    {
-                        CursorShortcut = ShortcutCatalog.GetDefault(EditorAction.Cursor)
-                    };
-                }
-                if (!document.RootElement.TryGetProperty(nameof(AppSettings.AlternativeShortcuts), out _)
-                    && candidate.EditorShortcuts.GetValueOrDefault(EditorAction.Select) == new ShortcutGesture(0x56, ShortcutModifiers.None))
-                {
-                    candidate = candidate with
-                    {
-                        EditorShortcuts = candidate.EditorShortcuts.Where(pair => pair.Key != EditorAction.Select).ToDictionary()
-                    };
-                }
-                Validate(candidate);
-                Current = candidate;
-            }
+            await ReadAsync(ct).ConfigureAwait(false);
         }
-        catch (Exception exception) when (exception is IOException or JsonException or ArgumentException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
         {
-            _logger.LogWarning(exception, "Settings could not be loaded; defaults are active");
+            _loadFailure = exception;
+            _logger.LogError(exception, "Settings could not be loaded; the existing file is protected from writes");
+        }
+        finally
+        {
+            _writeLock.Release();
         }
     }
 
@@ -79,12 +64,24 @@ public sealed class SettingsStore
 
         try
         {
+            if (_loadFailure is not null)
+            {
+                throw new InvalidOperationException("The existing settings could not be loaded and cannot be overwritten.", _loadFailure);
+            }
+
+            if (!_isLoaded)
+            {
+                await ReadAsync(ct).ConfigureAwait(false);
+            }
+
             AppSettings settings = update(Current);
             Validate(settings);
             Directory.CreateDirectory(Path.GetDirectoryName(_path) ?? throw new InvalidOperationException("Settings directory is missing."));
             string temporary = _path + ".tmp";
-            await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
+            string json = (_document ?? new SettingsDocument("{}")).Serialize(settings);
+            await File.WriteAllTextAsync(temporary, json, ct).ConfigureAwait(false);
             File.Move(temporary, _path, true);
+            _document = new SettingsDocument(json);
             Current = settings;
         }
         finally
@@ -92,6 +89,22 @@ public sealed class SettingsStore
             _writeLock.Release();
         }
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task ReadAsync(CancellationToken ct)
+    {
+        if (File.Exists(_path))
+        {
+            string json = await File.ReadAllTextAsync(_path, ct).ConfigureAwait(false);
+            SettingsDocument document = new(json);
+            AppSettings settings = document.Read();
+            Validate(settings);
+            _document = document;
+            Current = settings;
+        }
+
+        _loadFailure = null;
+        _isLoaded = true;
     }
 
     private static void Validate(AppSettings settings)

@@ -162,7 +162,7 @@ public sealed class EditorViewModelTests
     {
         document ??= TestDocuments.Create();
         document.SetSelection(document.Bounds);
-        settings ??= new SettingsStore(NullLogger<SettingsStore>.Instance, Path.Combine(Path.GetTempPath(), "Kadr-tests", "settings.json"));
+        settings ??= UiTestSession.CreateSettingsStore();
         return new EditorViewModel(document, new DrawingToolRegistry(), services, services, new ImageFileWriter(),
             services, settings, NullLogger<EditorViewModel>.Instance);
     }

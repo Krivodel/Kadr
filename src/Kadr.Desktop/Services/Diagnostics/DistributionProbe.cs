@@ -16,7 +16,7 @@ internal static class DistributionProbe
     internal static async Task<int> RunAsync(string outputPath, CancellationToken ct)
     {
         string directory = Path.Combine(Path.GetTempPath(), "Kadr-distribution-" + Guid.NewGuid().ToString("N"));
-        using FileLoggerProvider logging = new();
+        using FileLoggerProvider logging = new(ApplicationDataPaths.ForProbe(outputPath).LogsDirectory);
         ILogger logger = logging.CreateLogger(nameof(DistributionProbe));
         Stopwatch watch = Stopwatch.StartNew();
         try

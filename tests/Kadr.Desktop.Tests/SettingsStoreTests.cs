@@ -1,4 +1,7 @@
 using Kadr.Desktop.Services.Settings;
+using Kadr.Desktop.Services.Export;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -6,6 +9,103 @@ namespace Kadr.Desktop.Tests;
 
 public sealed class SettingsStoreTests
 {
+    [Fact]
+    public async Task UpdateAsync_BeforeLoad_PreservesExistingPreferencesAndFutureSettings()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "Kadr-settings-future-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "settings.json");
+        const string Original = """
+            {"Color":4279383126,"Thickness":17,"AutoStart":false,"CopyFormat":1,
+             "FutureOption":{"Enabled":true},
+             "EditorShortcuts":{"Arrow":{"Key":113,"Modifiers":0},"FutureTool":{"Key":114,"Modifiers":0},"999":null},
+             "AlternativeShortcuts":{"FutureTool":{"Key":115,"Modifiers":0}}}
+            """;
+        await File.WriteAllTextAsync(path, Original);
+        SettingsStore store = new(NullLogger<SettingsStore>.Instance, path);
+        try
+        {
+            await store.UpdateAsync(current => current with { LocalizationId = "English" }, CancellationToken.None);
+            SettingsStore reloaded = new(NullLogger<SettingsStore>.Instance, path);
+            await reloaded.LoadAsync(CancellationToken.None);
+
+            Assert.Equal(0xff123456u, reloaded.Current.Color);
+            Assert.Equal(17, reloaded.Current.Thickness);
+            Assert.False(reloaded.Current.AutoStart);
+            Assert.Equal(ScreenshotFormat.Jpeg, reloaded.Current.CopyFormat);
+            Assert.Equal("English", reloaded.Current.LocalizationId);
+            Assert.Equal(113, ShortcutCatalog.Get(reloaded.Current, EditorAction.Arrow).Key);
+            using JsonDocument original = JsonDocument.Parse(Original);
+            using JsonDocument saved = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(original.RootElement.GetProperty("FutureOption").GetRawText()),
+                JsonNode.Parse(saved.RootElement.GetProperty("FutureOption").GetRawText())));
+            foreach (string property in new string[] { "EditorShortcuts", "AlternativeShortcuts" })
+            {
+                Assert.True(JsonNode.DeepEquals(JsonNode.Parse(original.RootElement.GetProperty(property).GetProperty("FutureTool").GetRawText()),
+                    JsonNode.Parse(saved.RootElement.GetProperty(property).GetProperty("FutureTool").GetRawText())));
+            }
+            Assert.Equal(JsonValueKind.Null, saved.RootElement.GetProperty("EditorShortcuts").GetProperty("999").ValueKind);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Theory]
+    [InlineData("{broken")]
+    [InlineData("{\"Thickness\":999}")]
+    [InlineData("{\"EditorShortcuts\":null}")]
+    public async Task LoadAsync_UnreadableSettings_BlocksOverwriteAndPreservesOriginalFile(string original)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "Kadr-protected-settings-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "settings.json");
+        await File.WriteAllTextAsync(path, original);
+        SettingsStore store = new(NullLogger<SettingsStore>.Instance, path);
+        int changes = 0;
+        store.Changed += (sender, arguments) => changes++;
+        try
+        {
+            await store.LoadAsync(CancellationToken.None);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => store.UpdateAsync(
+                current => current with { LocalizationId = "English" }, CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => store.SaveAsync(new AppSettings(), CancellationToken.None));
+
+            Assert.Equal(original, await File.ReadAllTextAsync(path));
+            Assert.Equal(0, changes);
+            Assert.False(File.Exists(path + ".tmp"));
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateAsync_RemovingKnownShortcut_PreservesOnlyUnknownEntriesFromOriginal()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "Kadr-settings-remove-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "settings.json");
+        await File.WriteAllTextAsync(path, """{"EditorShortcuts":{"Arrow":{"Key":113,"Modifiers":0},"FutureTool":null}}""");
+        SettingsStore store = new(NullLogger<SettingsStore>.Instance, path);
+        try
+        {
+            await store.UpdateAsync(current => current with { EditorShortcuts = new Dictionary<EditorAction, ShortcutGesture>() }, CancellationToken.None);
+            using JsonDocument saved = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+
+            JsonElement shortcuts = saved.RootElement.GetProperty("EditorShortcuts");
+            Assert.False(shortcuts.TryGetProperty("Arrow", out _));
+            Assert.True(shortcuts.TryGetProperty("FutureTool", out _));
+            Assert.Equal(ShortcutCatalog.GetDefault(EditorAction.Arrow), ShortcutCatalog.Get(store.Current, EditorAction.Arrow));
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
     [Fact]
     public async Task Changed_AfterSuccessfulCommit_ExposesNewSettingsAndDoesNotNotifyFailedWrites()
     {

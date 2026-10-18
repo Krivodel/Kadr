@@ -11,6 +11,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
 using Avalonia.Media;
 using Avalonia.Input;
+using Krivodeling.Localization.Avalonia;
 
 using Kadr.Desktop.ViewModels;
 using Kadr.Desktop.Services.Capture;
@@ -28,6 +29,13 @@ internal static class SettingsWindowProbe
         PixelPoint originalPointer = NativeDesktop.GetPointerPosition();
         try
         {
+            await model.ApplyLocalizationCommand.ExecuteAsync(LocalizationConstants.EnglishId);
+            await model.ApplyLocalizationCommand.ExecuteAsync(LocalizationConstants.RussianId);
+            if (model.ErrorMessage is not null)
+            {
+                throw new InvalidOperationException("The isolated settings profile could not be saved.");
+            }
+
             window.Show();
             await Task.Delay(250, ct);
             nint handle = window.TryGetPlatformHandle()?.Handle ?? throw new InvalidOperationException("Settings HWND is missing.");

@@ -290,7 +290,7 @@ public sealed class EditorBehaviorUiTests
         await session.Dispatch(async () =>
         {
             using HttpClient http = new();
-            SettingsStore settings = new(NullLogger<SettingsStore>.Instance);
+            SettingsStore settings = UiTestSession.CreateSettingsStore();
             SettingsViewModel model = new(settings, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model };
             window.Show();

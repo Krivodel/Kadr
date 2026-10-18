@@ -27,7 +27,7 @@ public sealed class WindowCompositionTests
             DrawingDocument document = TestDocuments.Create(2560, 1440);
             using EditorViewModel model = EditorViewModelTests.Create(new EditorTestServices(), document);
             document.SetSelection(default);
-            EditorWindow window = new(model, document.Desktop.Monitors[0], new SettingsStore(NullLogger<SettingsStore>.Instance));
+            EditorWindow window = new(model, document.Desktop.Monitors[0], UiTestSession.CreateSettingsStore());
             window.Show();
             await UiTestSession.PumpFramesAsync(150);
             Controls.ScreenshotCanvas? surface = window.FindControl<Controls.ScreenshotCanvas>("Surface");
@@ -53,7 +53,7 @@ public sealed class WindowCompositionTests
             DrawingDocument document = TestDocuments.Create(1280, 800);
             using EditorViewModel model = EditorViewModelTests.Create(new EditorTestServices(), document);
             document.SetSelection(new PixelRectangle(500, 200, 300, 200));
-            EditorWindow window = new(model, document.Desktop.Monitors[0], new SettingsStore(NullLogger<SettingsStore>.Instance));
+            EditorWindow window = new(model, document.Desktop.Monitors[0], UiTestSession.CreateSettingsStore());
             window.Show();
             await UiTestSession.PumpFramesAsync(150);
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -114,7 +114,7 @@ public sealed class WindowCompositionTests
         await session.Dispatch(() =>
         {
             using HttpClient http = new();
-            SettingsStore store = new(NullLogger<SettingsStore>.Instance);
+            SettingsStore store = UiTestSession.CreateSettingsStore();
             SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http),
                 NullLogger<SettingsViewModel>.Instance, false);
             SettingsWindow window = new()
@@ -150,7 +150,7 @@ public sealed class WindowCompositionTests
                 TestDocuments.Element(DrawingToolId.Number, 560, 280, 560, 280)));
             using EditorViewModel model = EditorViewModelTests.Create(new EditorTestServices(), document);
             model.Document.SetSelection(new PixelRectangle(150, 180, 600, 360));
-            SettingsStore store = new(NullLogger<SettingsStore>.Instance);
+            SettingsStore store = UiTestSession.CreateSettingsStore();
             EditorWindow window = new(model, document.Desktop.Monitors[0], store);
             window.Show();
             await UiTestSession.PumpFramesAsync(150);
