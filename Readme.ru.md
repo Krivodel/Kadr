@@ -1,4 +1,6 @@
-# Kadr
+[English](Readme.md) | **Русский**
+
+# <img src="src/Kadr.Desktop/Assets/AppIcon.png" alt="Kadr" width="32" height="32"> Kadr
 
 Скриншотер для Windows 10 1809+ / Windows 11, x64.
 
