@@ -1,31 +1,31 @@
-# Проверка перед выпуском
+# Pre-release verification
 
-Команды сборки, тестов и проверки автономного EXE — в [README](../Readme.md). Запускать на Windows из корня проекта. `VerifySingleFile.ps1` проверяет автономный запуск, русский/английский OCR без сети, повторное использование кэша, окно настроек, DXGI, GPU-рендерер и экспорт лицензий. Отчёт: `artifacts/single-file-verification/verification.json`.
+Build, test, and self-contained EXE verification commands are in the [README](../Readme.md). Run them on Windows from the project root. `VerifySingleFile.ps1` checks standalone startup, offline Russian/English OCR, cache reuse, the settings window, DXGI, GPU rendering, and license export. Report: `artifacts/single-file-verification/verification.json`.
 
-## Отдельные диагностические команды
+## Individual diagnostic commands
 
-После публикации EXE:
+After publishing the EXE:
 
 ```powershell
 New-Item -ItemType Directory -Force ./artifacts/probes | Out-Null
 $kadr = './artifacts/single-file/Kadr.exe'
-& $kadr --capture-probe ./artifacts/probes/capture.png # DXGI по нажатию
+& $kadr --capture-probe ./artifacts/probes/capture.png # DXGI on demand
 & $kadr --capture-probe ./artifacts/probes/wgc.png --wgc # WGC
 & $kadr --capture-probe ./artifacts/probes/benchmark.png --continuous --iterations=30
-& $kadr --capture-probe ./artifacts/probes/freshness.json --verify-freshness # Свежесть DXGI
+& $kadr --capture-probe ./artifacts/probes/freshness.json --verify-freshness # DXGI frame freshness
 & $kadr --capture-probe ./artifacts/probes/lifecycle.json --exercise-lifecycle --iterations=3
-& $kadr --distribution-probe ./artifacts/probes/distribution.json # OCR без сети и нативные DLL
-& $kadr --render-probe ./artifacts/probes/render.json # GPU-рендерер
-& $kadr --editor-probe ./artifacts/probes/editor.json # Производительность редактора
-& $kadr --settings-probe ./artifacts/probes/settings.json # Окно настроек
-& $kadr --silent --smoke-test # Запуск и завершение
+& $kadr --distribution-probe ./artifacts/probes/distribution.json # Offline OCR and native DLLs
+& $kadr --render-probe ./artifacts/probes/render.json # GPU renderer
+& $kadr --editor-probe ./artifacts/probes/editor.json # Editor performance
+& $kadr --settings-probe ./artifacts/probes/settings.json # Settings window
+& $kadr --silent --smoke-test # Startup and shutdown
 & $kadr --export-licenses ./artifacts/probes/licenses
 ```
 
-Обычный `--capture-probe` сохраняет PNG и соседний `.png.json` с замерами; снимок делается после пятисекундного замера фоновой нагрузки. `--wgc` и `--continuous` можно сочетать. `--verify-freshness` всегда проверяет DXGI по нажатию, а `--exercise-lifecycle` перебирает оба механизма и режима.
+A regular `--capture-probe` saves a PNG and an accompanying `.png.json` with measurements; the screenshot is taken after measuring background load for five seconds. `--wgc` and `--continuous` can be combined. `--verify-freshness` always checks DXGI on demand, while `--exercise-lifecycle` cycles through both capture backends and modes.
 
-## Ручная проверка
+## Manual verification
 
-Проверить Windows 10 1809 и Windows 11, полноэкранные приложения, несколько мониторов со смешанным DPI/HDR, поворот и отключение монитора, сон и смену видеорежима.
+Check Windows 10 1809 and Windows 11, fullscreen applications, multiple monitors with mixed DPI/HDR, monitor rotation and disconnection, sleep, and display mode changes.
 
-Предупреждения Avalonia AVLN3001 для `EditorWindow` и `ColorPickerWindow` ожидаемы: окна создаются конструкторами с параметрами, а не через URI-загрузчик.
+Avalonia AVLN3001 warnings for `EditorWindow` and `ColorPickerWindow` are expected: the windows are created using parameterized constructors rather than the URI loader.
