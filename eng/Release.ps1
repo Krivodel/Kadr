@@ -58,10 +58,19 @@ function Get-ReleaseTagCommit([string]$Tag) {
     return $null
 }
 
-if ($NotesFile) { $NotesFile = (Resolve-Path -LiteralPath $NotesFile).ProviderPath }
-if ($CrtDirectory) { $CrtDirectory = (Resolve-Path -LiteralPath $CrtDirectory).ProviderPath }
-Push-Location $projectRoot
+$savedInputEncoding = [Console]::InputEncoding
+$savedConsoleOutputEncoding = [Console]::OutputEncoding
+$savedOutputEncoding = $OutputEncoding
+$locationPushed = $false
 try {
+    $utf8 = [Text.UTF8Encoding]::new($false)
+    $OutputEncoding = $utf8
+    [Console]::InputEncoding = $utf8
+    [Console]::OutputEncoding = $utf8
+    if ($NotesFile) { $NotesFile = (Resolve-Path -LiteralPath $NotesFile).ProviderPath }
+    if ($CrtDirectory) { $CrtDirectory = (Resolve-Path -LiteralPath $CrtDirectory).ProviderPath }
+    Push-Location $projectRoot
+    $locationPushed = $true
     if ($Login) {
         if ($PSCmdlet.ShouldProcess('github.com', 'Sign in to GitHub CLI through the browser')) {
             Assert-GitHubCli
@@ -154,6 +163,13 @@ try {
     Write-Host "Published https://github.com/$repository/releases/tag/$tag"
 }
 finally {
-    if ($lock) { $lock.Dispose() }
-    Pop-Location
+    $OutputEncoding = $savedOutputEncoding
+    try { [Console]::InputEncoding = $savedInputEncoding }
+    finally {
+        try { [Console]::OutputEncoding = $savedConsoleOutputEncoding }
+        finally {
+            try { if ($lock) { $lock.Dispose() } }
+            finally { if ($locationPushed) { Pop-Location } }
+        }
+    }
 }

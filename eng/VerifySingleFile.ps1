@@ -4,6 +4,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'ProbeProcess.ps1')
 $taskRoot = Split-Path $PSScriptRoot -Parent
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
     $OutputDirectory = Join-Path $taskRoot 'artifacts/single-file-verification'
@@ -23,18 +24,7 @@ $taskEnvironment = @{
 
 function Invoke-Probe([string]$Name, [string[]]$ProbeArguments) {
     $taskWatch = [System.Diagnostics.Stopwatch]::StartNew()
-    $taskProcess = New-Object System.Diagnostics.Process
-    $taskProcess.StartInfo.FileName = $taskExecutable
-    $taskProcess.StartInfo.Arguments = $ProbeArguments -join ' '
-    $taskProcess.StartInfo.WorkingDirectory = $taskIsolated.FullName
-    $taskProcess.StartInfo.UseShellExecute = $false
-    $taskProcess.StartInfo.CreateNoWindow = $true
-    $taskProcess.StartInfo.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
-    $taskProcess.StartInfo.RedirectStandardOutput = $true
-    $taskProcess.StartInfo.RedirectStandardError = $true
-    foreach ($taskVariable in $taskEnvironment.Keys) {
-        $taskProcess.StartInfo.EnvironmentVariables[$taskVariable] = $taskEnvironment[$taskVariable]
-    }
+    $taskProcess = New-ProbeProcess -Executable $taskExecutable -Arguments $ProbeArguments -WorkingDirectory $taskIsolated.FullName -ProcessEnvironment $taskEnvironment
     try {
         if (!$taskProcess.Start()) { throw "Could not start $Name." }
         $taskOutput = $taskProcess.StandardOutput.ReadToEndAsync()

@@ -1,18 +1,73 @@
 #requires -Version 5.1
+param([switch]$ProbeOnly)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $realGit = (Get-Command git -CommandType Application | Select-Object -First 1).Source
 $runRoot = Join-Path $projectRoot ('artifacts/release-tests-' + [guid]::NewGuid().ToString('N'))
 $results = [Collections.Generic.List[string]]::new()
+$nativeShell = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+$unicodeText = -join (@(0x041F, 0x0440, 0x0438, 0x0432, 0x0435, 0x0442, 0x0020, 0x2713) | ForEach-Object { [char]$_ })
+New-Item -ItemType Directory -Path $runRoot -Force | Out-Null
+$unicodeProbe = Join-Path $runRoot 'UnicodeProbe.ps1'
+Set-Content -LiteralPath $unicodeProbe -Encoding UTF8 -Value @'
+param([string]$Emit)
+$utf8 = [Text.UTF8Encoding]::new($false)
+$output = [IO.StreamWriter]::new([Console]::OpenStandardOutput(), $utf8)
+if ($Emit) {
+    $errorOutput = [IO.StreamWriter]::new([Console]::OpenStandardError(), $utf8)
+    $output.WriteLine($Emit)
+    $errorOutput.WriteLine($Emit)
+    $errorOutput.Flush()
+}
+else {
+    $inputReader = [IO.StreamReader]::new([Console]::OpenStandardInput(), $utf8)
+    $output.WriteLine($inputReader.ReadLine())
+}
+$output.Flush()
+'@
 
 function Assert-ReleaseTest([bool]$Condition, [string]$Message) {
     if (!$Condition) { throw $Message }
 }
 
 function Assert-IsolatedGitHubEnvironment {
+    Assert-ReleaseUtf8
     foreach ($name in @('GH_TOKEN', 'GITHUB_TOKEN')) {
         Assert-ReleaseTest ($null -eq [Environment]::GetEnvironmentVariable($name, 'Process')) "An inherited token reached GitHub CLI or Git: $name."
+    }
+}
+
+function Assert-ReleaseUtf8 {
+    foreach ($encoding in @([Console]::InputEncoding, [Console]::OutputEncoding, $OutputEncoding)) {
+        Assert-ReleaseTest ($encoding.CodePage -eq 65001 -and $encoding.GetPreamble().Length -eq 0) 'External commands must use UTF-8 without a BOM.'
+    }
+}
+
+function Assert-ProbeUtf8 {
+    . (Join-Path $PSScriptRoot 'ProbeProcess.ps1')
+    $probeAst = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'VerifySingleFile.ps1'), [ref]$null, [ref]$null)
+    $probeFunction = $probeAst.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Invoke-Probe' }, $true)
+    . ([scriptblock]::Create($probeFunction.Extent.Text))
+    $taskExecutable = $nativeShell
+    $taskRun = Get-Item -LiteralPath $runRoot
+    $taskIsolated = $taskRun
+    $taskEnvironment = @{}
+    $previousOutputEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.Encoding]::GetEncoding(866)
+
+        $probe = Invoke-Probe 'unicode' @('-NoProfile', '-File', ('"{0}"' -f $unicodeProbe), '-Emit', ('"{0}"' -f $unicodeText))
+
+        Assert-ReleaseTest ($probe.ExitCode -eq 0) 'The Unicode probe failed.'
+        foreach ($stream in @('stdout', 'stderr')) {
+            $actual = [IO.File]::ReadAllText((Join-Path $runRoot "unicode.$stream"), [Text.Encoding]::UTF8).TrimEnd("`r", "`n")
+            Assert-ReleaseTest ($actual -ceq $unicodeText) "Redirected $stream was not decoded as UTF-8."
+        }
+    }
+    finally {
+        [Console]::OutputEncoding = $previousOutputEncoding
     }
 }
 
@@ -27,6 +82,7 @@ function git {
 }
 
 function dotnet {
+    Assert-ReleaseUtf8
     $fixture.TestsRun++
     $global:LASTEXITCODE = if ($fixture.TestFailure) { 1 } else { 0 }
 }
@@ -40,6 +96,10 @@ function gh {
         if ($arguments[1] -eq 'login') {
             $fixture.Logins++
             Assert-ReleaseTest ($arguments -contains '--web') 'Login did not request browser authentication.'
+            if ($fixture.NativeUtf8) {
+                $roundTrip = $unicodeText | & $nativeShell -NoProfile -File $unicodeProbe
+                Assert-ReleaseTest ($LASTEXITCODE -eq 0 -and $roundTrip -ceq $unicodeText) 'Native UTF-8 stdin/stdout round trip failed.'
+            }
             if ($fixture.LoginFailure) { $global:LASTEXITCODE = 1 }
         }
         return
@@ -129,23 +189,44 @@ if ($fixture.VerificationFailure) { throw 'Fixture verification failed.' }
         BuildVersion = '1.2.3'
         ExtraPushTarget = $false
         Logins = 0; LoginFailure = $false; TokensAbsent = $false
+        NativeUtf8 = $false; CallerScope = $false; MissingNotes = $false
     }
 }
 
 function Invoke-ReleaseFixture([string]$ExpectedError = '', [switch]$Login, [switch]$Preview) {
+    $callerInputEncoding = [Console]::InputEncoding
+    $callerConsoleOutputEncoding = [Console]::OutputEncoding
+    $callerOutputEncoding = $OutputEncoding
+    $callerCulture = [Threading.Thread]::CurrentThread.CurrentCulture
+    $callerUiCulture = [Threading.Thread]::CurrentThread.CurrentUICulture
     $originalTokens = @{}
     foreach ($name in @('GH_TOKEN', 'GITHUB_TOKEN')) {
         $originalTokens[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
     }
     $expectedToken = if ($fixture.TokensAbsent) { $null } else { 'fixture-token-for-other-projects' }
     try {
+        $expectedInputEncoding = [Text.Encoding]::GetEncoding(1251)
+        $expectedConsoleOutputEncoding = [Text.Encoding]::GetEncoding(866)
+        $expectedOutputEncoding = [Text.Encoding]::ASCII
+        [Console]::InputEncoding = $expectedInputEncoding
+        [Console]::OutputEncoding = $expectedConsoleOutputEncoding
+        $OutputEncoding = $expectedOutputEncoding
         $fixtureToken = $expectedToken
         if ($null -eq $fixtureToken) { $fixtureToken = [NullString]::Value }
         foreach ($name in $originalTokens.Keys) { [Environment]::SetEnvironmentVariable($name, $fixtureToken, 'Process') }
         $failure = $null
-        try { & (Join-Path $fixture.Directory 'eng/Release.ps1') -Login:$Login -WhatIf:$Preview }
+        $releaseArguments = @{ Login = $Login; WhatIf = $Preview }
+        if ($fixture.MissingNotes) { $releaseArguments.NotesFile = Join-Path $fixture.Directory 'missing-notes.md' }
+        try {
+            if ($fixture.CallerScope) { . (Join-Path $fixture.Directory 'eng/Release.ps1') @releaseArguments }
+            else { & (Join-Path $fixture.Directory 'eng/Release.ps1') @releaseArguments }
+        }
         catch { $failure = $_.Exception.Message }
 
+        Assert-ReleaseTest ([Console]::InputEncoding.Equals($expectedInputEncoding)) 'Console input encoding was not restored.'
+        Assert-ReleaseTest ([Console]::OutputEncoding.Equals($expectedConsoleOutputEncoding)) 'Console output encoding was not restored.'
+        Assert-ReleaseTest ($OutputEncoding.Equals($expectedOutputEncoding)) 'Native pipeline encoding was not restored.'
+        Assert-ReleaseTest ([Threading.Thread]::CurrentThread.CurrentCulture.Equals($callerCulture) -and [Threading.Thread]::CurrentThread.CurrentUICulture.Equals($callerUiCulture)) 'Message culture changed.'
         foreach ($name in $originalTokens.Keys) {
             Assert-ReleaseTest ([Environment]::GetEnvironmentVariable($name, 'Process') -ceq $expectedToken) "The caller's environment was not restored: $name."
         }
@@ -156,6 +237,9 @@ function Invoke-ReleaseFixture([string]$ExpectedError = '', [switch]$Login, [swi
         elseif ($failure) { throw $failure }
     }
     finally {
+        $OutputEncoding = $callerOutputEncoding
+        [Console]::InputEncoding = $callerInputEncoding
+        [Console]::OutputEncoding = $callerConsoleOutputEncoding
         foreach ($name in $originalTokens.Keys) {
             $value = $originalTokens[$name]
             if ($null -eq $value) { $value = [NullString]::Value }
@@ -164,11 +248,18 @@ function Invoke-ReleaseFixture([string]$ExpectedError = '', [switch]$Login, [swi
     }
 }
 
-foreach ($scenario in @('Login', 'LoginFailure', 'LoginWithoutTokens', 'LoginWhatIf', 'Success', 'DirtySource', 'UntrackedSource', 'WrongRepository', 'MultiplePushTargets', 'TestFailure', 'WrongBuildVersion', 'VerificationFailure', 'ChangedDuringBuild', 'ExistingRelease', 'OlderVersion', 'WrongTag', 'AnnotatedTag', 'CorruptUpload', 'RetryUpload', 'WhatIf')) {
+Assert-ProbeUtf8
+$results.Add('RedirectedUtf8')
+$scenarios = @('Login', 'LoginFailure', 'LoginWithoutTokens', 'LoginWhatIf', 'NativeUtf8', 'LoginInCallerScope', 'InvalidNotesFile', 'Success', 'DirtySource', 'UntrackedSource', 'WrongRepository', 'MultiplePushTargets', 'TestFailure', 'WrongBuildVersion', 'VerificationFailure', 'ChangedDuringBuild', 'ExistingRelease', 'OlderVersion', 'WrongTag', 'AnnotatedTag', 'CorruptUpload', 'RetryUpload', 'WhatIf')
+if ($ProbeOnly) { $scenarios = @() }
+foreach ($scenario in $scenarios) {
     $fixture = New-ReleaseFixture $scenario
     switch ($scenario) {
         'LoginFailure' { $fixture.LoginFailure = $true }
         'LoginWithoutTokens' { $fixture.TokensAbsent = $true }
+        'NativeUtf8' { $fixture.NativeUtf8 = $true }
+        'LoginInCallerScope' { $fixture.CallerScope = $true }
+        'InvalidNotesFile' { $fixture.MissingNotes = $true }
         'Success' {
             & $realGit -C $fixture.Directory config push.followTags true
             & $realGit -C $fixture.Directory tag -a not-for-release -m 'Unrelated local tag'
@@ -200,11 +291,12 @@ foreach ($scenario in @('Login', 'LoginFailure', 'LoginWithoutTokens', 'LoginWha
     }
 
     switch ($scenario) {
-        { $_ -in 'Login', 'LoginWithoutTokens' } {
+        { $_ -in 'Login', 'LoginWithoutTokens', 'NativeUtf8', 'LoginInCallerScope' } {
             Invoke-ReleaseFixture -Login
             Assert-ReleaseTest ($fixture.Logins -eq 1 -and $fixture.GitHubCalls -eq 1 -and $fixture.Builds -eq 0 -and $fixture.TestsRun -eq 0) 'Login performed publication work.'
         }
         'LoginFailure' { Invoke-ReleaseFixture 'gh failed' -Login }
+        'InvalidNotesFile' { Invoke-ReleaseFixture 'missing-notes.md' }
         'LoginWhatIf' {
             Invoke-ReleaseFixture -Login -Preview
             Assert-ReleaseTest ($fixture.GitHubCalls -eq 0 -and $fixture.Builds -eq 0 -and $fixture.TestsRun -eq 0) 'Login WhatIf performed work.'

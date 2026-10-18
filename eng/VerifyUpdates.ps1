@@ -1,6 +1,7 @@
 param([switch]$KeepFiles)
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'ProbeProcess.ps1')
 $projectRoot = [IO.Path]::GetFullPath((Split-Path $PSScriptRoot -Parent))
 $dotnet = Join-Path $projectRoot '.tools\dotnet\dotnet.exe'
 if (!(Test-Path -LiteralPath $dotnet)) { $dotnet = 'dotnet' }
@@ -25,9 +26,20 @@ try {
     if ($oldHash -eq $newHash) { throw 'The fixture versions must differ.' }
     $stdout = Join-Path $working 'stdout.txt'
     $stderr = Join-Path $working 'stderr.txt'
-    $process = Start-Process -FilePath $executable -ArgumentList @('install', ('"' + $nextFile + '"'), ('"' + $working + '"')) -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-    if (!$process.WaitForExit(30000)) { throw 'The old fixture did not exit.' }
-    if ($process.ExitCode -ne 0) { throw "The old fixture failed; inspect $stderr." }
+    $process = New-ProbeProcess -Executable $executable -Arguments @('install', ('"' + $nextFile + '"'), ('"' + $working + '"')) -WorkingDirectory (Get-Location).ProviderPath
+    try {
+        if (!$process.Start()) { throw 'The old fixture did not start.' }
+        $oldProcessId = $process.Id
+        $processOutput = $process.StandardOutput.ReadToEndAsync()
+        $processError = $process.StandardError.ReadToEndAsync()
+        if (!$process.WaitForExit(30000)) { throw 'The old fixture did not exit.' }
+        [IO.File]::WriteAllText($stdout, $processOutput.GetAwaiter().GetResult())
+        [IO.File]::WriteAllText($stderr, $processError.GetAwaiter().GetResult())
+        if ($process.ExitCode -ne 0) { throw "The old fixture failed; inspect $stderr." }
+    }
+    finally {
+        $process.Dispose()
+    }
     $resultPath = Join-Path $working 'result.json'
     $failurePath = Join-Path $working 'failure.txt'
     $deadline = [DateTime]::UtcNow.AddSeconds(45)
@@ -38,7 +50,7 @@ try {
     $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
     $restarted = Get-Process -Id $result.ProcessId -ErrorAction SilentlyContinue
     if ($restarted -and !$restarted.WaitForExit(10000)) { throw 'The restored fixture did not exit.' }
-    if (!$result.Passed -or $result.Version -ne '1.1.0.0' -or $result.ProcessId -eq $process.Id -or $result.Executable -ne $executable) {
+    if (!$result.Passed -or $result.Version -ne '1.1.0.0' -or $result.ProcessId -eq $oldProcessId -or $result.Executable -ne $executable) {
         throw 'The restart result does not match the expected executable or version.'
     }
     if ((Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash -ne $newHash) { throw 'The running executable was not replaced.' }
