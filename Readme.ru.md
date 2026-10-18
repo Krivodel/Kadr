@@ -14,6 +14,7 @@ dotnet run --project src/Kadr.Desktop
 dotnet test Kadr.slnx -c Release
 ./eng/Publish.ps1 # Автономный EXE
 ./eng/PrepareRelease.ps1 # Сборка и подпись файлов для GitHub Releases
+./eng/Release.ps1 -Login # Однократный вход в GitHub
 ./eng/Release.ps1 # Тесты, сборка, подпись и публикация GitHub Release
 ./eng/VerifySingleFile.ps1 -ExecutablePath ./artifacts/single-file/Kadr.exe
 ./eng/Clean.ps1 -WhatIf # Показать список; без -WhatIf — удалить

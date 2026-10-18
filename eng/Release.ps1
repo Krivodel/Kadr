@@ -1,6 +1,7 @@
 #requires -Version 7.2
 [CmdletBinding(SupportsShouldProcess)]
 param(
+    [switch]$Login,
     [string]$NotesFile,
     [string]$CrtDirectory
 )
@@ -12,8 +13,30 @@ $repository = 'Krivodel/Kadr'
 $lock = $null
 
 function Invoke-ReleaseCommand([string]$Command, [string[]]$CommandArguments) {
-    & $Command @CommandArguments
-    if ($LASTEXITCODE -ne 0) { throw "$Command failed (exit code $LASTEXITCODE). Release publication stopped." }
+    $savedTokens = @{}
+    if ($Command -in @('gh', 'git')) {
+        foreach ($name in @('GH_TOKEN', 'GITHUB_TOKEN')) {
+            $savedTokens[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+        }
+    }
+    try {
+        foreach ($name in $savedTokens.Keys) { [Environment]::SetEnvironmentVariable($name, [NullString]::Value, 'Process') }
+        & $Command @CommandArguments
+        if ($LASTEXITCODE -ne 0) { throw "$Command failed (exit code $LASTEXITCODE). Release publication stopped." }
+    }
+    finally {
+        foreach ($name in $savedTokens.Keys) {
+            $value = $savedTokens[$name]
+            if ($null -eq $value) { $value = [NullString]::Value }
+            [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+        }
+    }
+}
+
+function Assert-GitHubCli {
+    if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
+        throw 'Install the Windows amd64 MSI from https://github.com/cli/cli/releases/latest, reopen the terminal, then run ./eng/Release.ps1 -Login.'
+    }
 }
 
 function Invoke-ReleaseApi([string]$Endpoint, [string[]]$ApiArguments = @()) {
@@ -39,6 +62,13 @@ if ($NotesFile) { $NotesFile = (Resolve-Path -LiteralPath $NotesFile).ProviderPa
 if ($CrtDirectory) { $CrtDirectory = (Resolve-Path -LiteralPath $CrtDirectory).ProviderPath }
 Push-Location $projectRoot
 try {
+    if ($Login) {
+        if ($PSCmdlet.ShouldProcess('github.com', 'Sign in to GitHub CLI through the browser')) {
+            Assert-GitHubCli
+            Invoke-ReleaseCommand gh @('auth', 'login', '--hostname', 'github.com', '--git-protocol', 'https', '--web') | Out-Host
+        }
+        return
+    }
     [xml]$project = Get-Content -LiteralPath 'src/Kadr.Desktop/Kadr.Desktop.csproj' -Raw
     $version = [string]$project.Project.PropertyGroup.Version
     if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Set a stable X.Y.Z Version in Kadr.Desktop.csproj.' }
@@ -56,9 +86,7 @@ try {
             throw 'origin must point only to github.com/Krivodel/Kadr for both fetch and push.'
         }
     }
-    if (!(Get-Command gh -ErrorAction SilentlyContinue)) {
-        throw 'Install the Windows amd64 MSI from https://github.com/cli/cli/releases/latest, reopen the terminal, then run gh auth login and gh auth setup-git.'
-    }
+    Assert-GitHubCli
     Invoke-ReleaseCommand gh @('auth', 'status', '--hostname', 'github.com') | Out-Host
     $metadata = Invoke-ReleaseApi "repos/$repository"
     if ($metadata.private) { throw 'Automatic updates require a public GitHub repository.' }

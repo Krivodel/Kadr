@@ -2,7 +2,9 @@
 
 ## Release
 
-Install the Windows amd64 MSI from [GitHub CLI releases](https://github.com/cli/cli/releases/latest), reopen the terminal, then run `gh auth login` and `gh auth setup-git`.
+Install the Windows amd64 MSI from [GitHub CLI releases](https://github.com/cli/cli/releases/latest), reopen the terminal, then run `./eng/Release.ps1 -Login` once.
+
+Login and publication use GitHub CLI's saved credentials. `GH_TOKEN` and `GITHUB_TOKEN` are excluded only while running GitHub CLI and Git commands, then restored even on failure. Windows environment settings are unchanged.
 
 1. Set a new stable `<Version>` (`X.Y.Z`) in `src/Kadr.Desktop/Kadr.Desktop.csproj` and commit the changes.
 2. Run `./eng/Release.ps1` in PowerShell 7.2+.

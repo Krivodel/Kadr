@@ -10,7 +10,14 @@ function Assert-ReleaseTest([bool]$Condition, [string]$Message) {
     if (!$Condition) { throw $Message }
 }
 
+function Assert-IsolatedGitHubEnvironment {
+    foreach ($name in @('GH_TOKEN', 'GITHUB_TOKEN')) {
+        Assert-ReleaseTest ($null -eq [Environment]::GetEnvironmentVariable($name, 'Process')) "An inherited token reached GitHub CLI or Git: $name."
+    }
+}
+
 function git {
+    Assert-IsolatedGitHubEnvironment
     if ($args[0] -eq 'remote' -and $args[1] -eq 'get-url') {
         $global:LASTEXITCODE = 0
         if ($fixture.ExtraPushTarget -and $args -contains '--push') { return @($fixture.Origin, 'https://github.com/another/repository.git') }
@@ -25,10 +32,18 @@ function dotnet {
 }
 
 function gh {
+    Assert-IsolatedGitHubEnvironment
     $global:LASTEXITCODE = 0
     $arguments = @($args)
     $fixture.GitHubCalls++
-    if ($arguments[0] -eq 'auth') { return }
+    if ($arguments[0] -eq 'auth') {
+        if ($arguments[1] -eq 'login') {
+            $fixture.Logins++
+            Assert-ReleaseTest ($arguments -contains '--web') 'Login did not request browser authentication.'
+            if ($fixture.LoginFailure) { $global:LASTEXITCODE = 1 }
+        }
+        return
+    }
     if ($arguments[0] -eq 'api') {
         $endpoint = $arguments[3]
         if ($endpoint -eq 'repos/Krivodel/Kadr') { return '{"private":false}' }
@@ -113,23 +128,47 @@ if ($fixture.VerificationFailure) { throw 'Fixture verification failed.' }
         TestFailure = $false; UploadFailure = $false; CorruptUpload = $false; VerificationFailure = $false; MutateSource = $false
         BuildVersion = '1.2.3'
         ExtraPushTarget = $false
+        Logins = 0; LoginFailure = $false; TokensAbsent = $false
     }
 }
 
-function Invoke-ReleaseFixture([string]$ExpectedError = '') {
-    $failure = $null
-    try { & (Join-Path $fixture.Directory 'eng/Release.ps1') }
-    catch { $failure = $_.Exception.Message }
-    if ($ExpectedError) {
-        Assert-ReleaseTest ($null -ne $failure -and $failure -like "*$ExpectedError*") "Expected '$ExpectedError', got '$failure'."
-        Assert-ReleaseTest (!$fixture.Published) 'A failed release was published.'
+function Invoke-ReleaseFixture([string]$ExpectedError = '', [switch]$Login, [switch]$Preview) {
+    $originalTokens = @{}
+    foreach ($name in @('GH_TOKEN', 'GITHUB_TOKEN')) {
+        $originalTokens[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
     }
-    elseif ($failure) { throw $failure }
+    $expectedToken = if ($fixture.TokensAbsent) { $null } else { 'fixture-token-for-other-projects' }
+    try {
+        $fixtureToken = $expectedToken
+        if ($null -eq $fixtureToken) { $fixtureToken = [NullString]::Value }
+        foreach ($name in $originalTokens.Keys) { [Environment]::SetEnvironmentVariable($name, $fixtureToken, 'Process') }
+        $failure = $null
+        try { & (Join-Path $fixture.Directory 'eng/Release.ps1') -Login:$Login -WhatIf:$Preview }
+        catch { $failure = $_.Exception.Message }
+
+        foreach ($name in $originalTokens.Keys) {
+            Assert-ReleaseTest ([Environment]::GetEnvironmentVariable($name, 'Process') -ceq $expectedToken) "The caller's environment was not restored: $name."
+        }
+        if ($ExpectedError) {
+            Assert-ReleaseTest ($null -ne $failure -and $failure -like "*$ExpectedError*") "Expected '$ExpectedError', got '$failure'."
+            Assert-ReleaseTest (!$fixture.Published) 'A failed release was published.'
+        }
+        elseif ($failure) { throw $failure }
+    }
+    finally {
+        foreach ($name in $originalTokens.Keys) {
+            $value = $originalTokens[$name]
+            if ($null -eq $value) { $value = [NullString]::Value }
+            [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+        }
+    }
 }
 
-foreach ($scenario in @('Success', 'DirtySource', 'UntrackedSource', 'WrongRepository', 'MultiplePushTargets', 'TestFailure', 'WrongBuildVersion', 'VerificationFailure', 'ChangedDuringBuild', 'ExistingRelease', 'OlderVersion', 'WrongTag', 'AnnotatedTag', 'CorruptUpload', 'RetryUpload', 'WhatIf')) {
+foreach ($scenario in @('Login', 'LoginFailure', 'LoginWithoutTokens', 'LoginWhatIf', 'Success', 'DirtySource', 'UntrackedSource', 'WrongRepository', 'MultiplePushTargets', 'TestFailure', 'WrongBuildVersion', 'VerificationFailure', 'ChangedDuringBuild', 'ExistingRelease', 'OlderVersion', 'WrongTag', 'AnnotatedTag', 'CorruptUpload', 'RetryUpload', 'WhatIf')) {
     $fixture = New-ReleaseFixture $scenario
     switch ($scenario) {
+        'LoginFailure' { $fixture.LoginFailure = $true }
+        'LoginWithoutTokens' { $fixture.TokensAbsent = $true }
         'Success' {
             & $realGit -C $fixture.Directory config push.followTags true
             & $realGit -C $fixture.Directory tag -a not-for-release -m 'Unrelated local tag'
@@ -161,6 +200,15 @@ foreach ($scenario in @('Success', 'DirtySource', 'UntrackedSource', 'WrongRepos
     }
 
     switch ($scenario) {
+        { $_ -in 'Login', 'LoginWithoutTokens' } {
+            Invoke-ReleaseFixture -Login
+            Assert-ReleaseTest ($fixture.Logins -eq 1 -and $fixture.GitHubCalls -eq 1 -and $fixture.Builds -eq 0 -and $fixture.TestsRun -eq 0) 'Login performed publication work.'
+        }
+        'LoginFailure' { Invoke-ReleaseFixture 'gh failed' -Login }
+        'LoginWhatIf' {
+            Invoke-ReleaseFixture -Login -Preview
+            Assert-ReleaseTest ($fixture.GitHubCalls -eq 0 -and $fixture.Builds -eq 0 -and $fixture.TestsRun -eq 0) 'Login WhatIf performed work.'
+        }
         { $_ -in 'DirtySource', 'UntrackedSource', 'ChangedDuringBuild' } { Invoke-ReleaseFixture 'Commit all source changes' }
         { $_ -in 'WrongRepository', 'MultiplePushTargets' } { Invoke-ReleaseFixture 'origin must point' }
         'TestFailure' { Invoke-ReleaseFixture 'dotnet failed' }
@@ -182,7 +230,7 @@ foreach ($scenario in @('Success', 'DirtySource', 'UntrackedSource', 'WrongRepos
             Assert-ReleaseTest ($fixture.Published -and $fixture.Creates -eq 1) 'Retry did not reuse the existing draft.'
         }
         'WhatIf' {
-            & (Join-Path $fixture.Directory 'eng/Release.ps1') -WhatIf
+            Invoke-ReleaseFixture -Preview
             Assert-ReleaseTest ($fixture.GitHubCalls -eq 0 -and $fixture.Builds -eq 0 -and $fixture.TestsRun -eq 0) 'WhatIf performed work.'
         }
         'Success' {
