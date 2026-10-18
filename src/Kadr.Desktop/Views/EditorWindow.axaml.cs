@@ -45,6 +45,7 @@ public sealed partial class EditorWindow : Window
     private bool _cursorHidden;
     private bool _chromePending;
     private bool _isClosing;
+    private bool _ownsUpdatePopup;
 
     public EditorWindow(EditorViewModel model, DesktopMonitor monitor, SettingsStore settings, Func<bool>? isAltPressed = null)
     {
@@ -73,6 +74,10 @@ public sealed partial class EditorWindow : Window
         TextEntry.LostFocus += OnTextLostFocus;
         _model.Document.Changed += OnDocumentChanged;
         _model.PropertyChanged += OnModelChanged;
+        if (_model.Updates is not null)
+        {
+            _model.Updates.PropertyChanged += OnUpdateChanged;
+        }
         _modifiers = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Input, OnModifierTick);
         _modifiers.Start();
         Opened += OnOpened;
@@ -113,6 +118,47 @@ public sealed partial class EditorWindow : Window
         await Task.Delay(Controls.UiAnimationDuration.PanelFade);
     }
 
+    internal void PrepareForUpdate()
+    {
+        _wheelSizeAnimator.Finish();
+        CommitText();
+        CancelCanvasGesture();
+        FinishThickness();
+        SetPaletteVisible(false);
+        _model.IsPreview = false;
+    }
+
+    private void OnUpdateChanged(object? sender, PropertyChangedEventArgs arguments)
+    {
+        if (arguments.PropertyName == nameof(UpdateViewModel.IsAvailable))
+        {
+            _layoutState = null;
+        }
+        RequestChromeUpdate();
+    }
+
+    private void UpdateUpdatePopup()
+    {
+        bool visible = _ownsUpdatePopup && _model.Updates is { IsOpen: true } && !_model.IsPreview && !_isClosing;
+        FloatingPanelAnimator.SetVisible(UpdatePopup, visible);
+        Surface.IsHitTestVisible = _model.Updates?.IsLoading != true;
+        if (!visible)
+        {
+            return;
+        }
+        SetPaletteVisible(false);
+        UpdatePopup.Measure(new Size(350, double.PositiveInfinity));
+        double width = UpdatePopup.DesiredSize.Width;
+        double height = UpdatePopup.DesiredSize.Height;
+        double left = Canvas.GetLeft(Actions) - width - 12;
+        if (left < 6 && Canvas.GetLeft(Actions) + Actions.Bounds.Width + 12 + width <= ClientSize.Width - 6)
+        {
+            left = Canvas.GetLeft(Actions) + Actions.Bounds.Width + 12;
+        }
+        Canvas.SetLeft(UpdatePopup, Math.Clamp(left, 6, Math.Max(6, ClientSize.Width - width - 6)));
+        Canvas.SetTop(UpdatePopup, Math.Clamp(Canvas.GetTop(Actions), 6, Math.Max(6, ClientSize.Height - height - 6)));
+    }
+
     private PixelPoint GetDocumentPointer(PointerEventArgs arguments)
     {
         Point local = arguments.GetPosition(Surface);
@@ -139,6 +185,8 @@ public sealed partial class EditorWindow : Window
         {
             return;
         }
+
+        UpdateUpdatePopup();
 
         if (_cursorHidden != _model.IsAdjustingThickness)
         {
@@ -199,6 +247,8 @@ public sealed partial class EditorWindow : Window
 
         if (anchorMonitor.Handle != _monitor.Handle)
         {
+            _ownsUpdatePopup = false;
+            UpdateUpdatePopup();
             FloatingPanelAnimator.SetVisible(Actions, false);
             FloatingPanelAnimator.SetVisible(ToolsPanel, false);
             return;
@@ -219,6 +269,8 @@ public sealed partial class EditorWindow : Window
         Canvas.SetTop(ToolsPanel, tools.Y);
         Canvas.SetLeft(Actions, actions.X);
         Canvas.SetTop(Actions, actions.Y);
+        _ownsUpdatePopup = true;
+        UpdateUpdatePopup();
     }
 
     private void UpdatePointerCursor(PixelPoint position)
@@ -535,7 +587,11 @@ public sealed partial class EditorWindow : Window
 
     private void CancelOrClose()
     {
-        if (_thicknessOrigin is not null)
+        if (_model.Updates is { IsOpen: true } updates)
+        {
+            updates.DismissCommand.Execute(null);
+        }
+        else if (_thicknessOrigin is not null)
         {
             _model.Interaction.Thickness = _originalThickness;
             FinishThickness();
@@ -686,7 +742,7 @@ public sealed partial class EditorWindow : Window
 
     private void OnModifierTick(object? sender, EventArgs arguments)
     {
-        bool preview = IsActive && !_textEditing && !_isPaletteOpen && (_thicknessOrigin is null)
+        bool preview = IsActive && !_textEditing && !_isPaletteOpen && _model.Updates?.IsOpen != true && (_thicknessOrigin is null)
             && !_model.Interaction.IsGestureActive && _isAltPressed();
 
         if (_model.IsPreview != preview)
@@ -776,6 +832,10 @@ public sealed partial class EditorWindow : Window
         _modifiers.Stop();
         _model.Document.Changed -= OnDocumentChanged;
         _model.PropertyChanged -= OnModelChanged;
+        if (_model.Updates is not null)
+        {
+            _model.Updates.PropertyChanged -= OnUpdateChanged;
+        }
         Surface.ClearValue(CursorProperty);
         ClearValue(CursorProperty);
         foreach (Cursor cursor in _cursors.Values)

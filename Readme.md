@@ -4,22 +4,22 @@
 
 Screenshot tool for Windows 10 1809+ / Windows 11, x64.
 
-# Commands to run from the project root
+## Development
+
+Use the .NET SDK specified in `global.json`. Run commands from the project root:
 
 ```powershell
-dotnet build Kadr.slnx -c Release # Development build
-dotnet run --project src/Kadr.Desktop # Run
-dotnet test Kadr.slnx -c Release # Tests
+dotnet build Kadr.slnx -c Release
+dotnet run --project src/Kadr.Desktop
+dotnet test Kadr.slnx -c Release
 ./eng/Publish.ps1 # Self-contained EXE
+./eng/PrepareRelease.ps1 # Build and sign GitHub release assets
 ./eng/VerifySingleFile.ps1 -ExecutablePath ./artifacts/single-file/Kadr.exe
+./eng/Clean.ps1 -WhatIf # List files; omit -WhatIf to delete
 ```
 
-Publishing creates a self-contained `artifacts/single-file/Kadr.exe`. Visual C++ x64 CRT files from Visual Studio 2022 are required; use `-CrtDirectory` to specify a different directory.
+`Publish.ps1` creates `artifacts/single-file/Kadr.exe`. Visual C++ x64 CRT files from Visual Studio 2022 are required (`-CrtDirectory` for another directory).
 
-Cleaning generated files requires a verified distribution: the EXE, `artifacts/Kadr-win-x64.zip`, and the corresponding `artifacts/verification.json` report.
+`Clean.ps1` requires the EXE, `artifacts/Kadr-win-x64.zip` and a successful `artifacts/verification.json` report with matching hashes.
 
-```powershell
-./eng/Clean.ps1 -WhatIf # List files; omit -WhatIf to delete them
-```
-
-[Diagnostic commands and pre-release verification](docs/verification.md).
+[Diagnostics](docs/verification.md) · [Releases and signing key](docs/updates.md)

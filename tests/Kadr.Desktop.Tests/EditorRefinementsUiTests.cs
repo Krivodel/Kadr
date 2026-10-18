@@ -88,7 +88,7 @@ public sealed class EditorRefinementsUiTests
             window.Show();
             await UiTestSession.PumpFramesAsync(200);
             Border actions = window.FindControl<Border>("Actions") ?? throw new InvalidOperationException();
-            Button[] actionButtons = actions.GetVisualDescendants().OfType<Button>().ToArray();
+            Button[] actionButtons = actions.GetVisualDescendants().OfType<Button>().Where(button => button.IsVisible).ToArray();
             Assert.Equal(new object[] { model.CopyCommand, model.SaveCommand, model.RecognizeCommand, model.SettingsCommand, model.CancelCommand },
                 actionButtons.Select(button => (object?)button.Command));
             Button color = window.FindControl<Button>("ColorButton") ?? throw new InvalidOperationException();

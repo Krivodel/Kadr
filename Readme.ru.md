@@ -4,22 +4,22 @@
 
 Скриншотер для Windows 10 1809+ / Windows 11, x64.
 
-# Команды из корня проекта
+## Разработка
+
+Используй .NET SDK из `global.json`. Команды выполняются из корня проекта:
 
 ```powershell
-dotnet build Kadr.slnx -c Release # Сборка для разработки
-dotnet run --project src/Kadr.Desktop # Запуск
-dotnet test Kadr.slnx -c Release # Тесты
+dotnet build Kadr.slnx -c Release
+dotnet run --project src/Kadr.Desktop
+dotnet test Kadr.slnx -c Release
 ./eng/Publish.ps1 # Автономный EXE
+./eng/PrepareRelease.ps1 # Сборка и подпись файлов для GitHub Releases
 ./eng/VerifySingleFile.ps1 -ExecutablePath ./artifacts/single-file/Kadr.exe
-```
-
-Публикация создаёт автономный `artifacts/single-file/Kadr.exe`. Нужны Visual C++ x64 CRT из Visual Studio 2022; другой каталог можно указать через `-CrtDirectory`.
-
-Очистка накопленных результатов требует проверенной поставки: EXE, `artifacts/Kadr-win-x64.zip` и соответствующего отчёта `artifacts/verification.json`.
-
-```powershell
 ./eng/Clean.ps1 -WhatIf # Показать список; без -WhatIf — удалить
 ```
 
-[Диагностические команды и проверка перед выпуском](docs/verification.md).
+`Publish.ps1` создаёт `artifacts/single-file/Kadr.exe`. Нужны Visual C++ x64 CRT из Visual Studio 2022 (`-CrtDirectory` для другого каталога).
+
+`Clean.ps1` требует EXE, `artifacts/Kadr-win-x64.zip` и успешный отчёт `artifacts/verification.json` с совпадающими хешами.
+
+[Диагностика](docs/verification.md) · [Релизы и ключ подписи](docs/updates.md)

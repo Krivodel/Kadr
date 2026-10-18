@@ -4,6 +4,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
 using Tesseract;
+using NSec.Cryptography;
+using Kadr.Desktop.Services.Updates;
 
 using Kadr.Desktop.Services.Ocr;
 
@@ -46,11 +48,16 @@ internal static class DistributionProbe
             object[] nativeModules = process.Modules.Cast<ProcessModule>()
                 .Where(module => nativeNames.Contains(module.ModuleName, StringComparer.OrdinalIgnoreCase))
                 .Select(module => (object)new { module.ModuleName, module.FileName }).ToArray();
-            bool passed = availableOffline && english && russian;
+            using Key signingKey = Key.Create(SignatureAlgorithm.Ed25519);
+            string sampleHash = new('a', 64);
+            byte[] signature = SignatureAlgorithm.Ed25519.Sign(signingKey, UpdateSignature.GetMessage("1.0.0", "Kadr-win-x64.exe", sampleHash));
+            bool signatures = UpdateSignature.Verify(new UpdateSignatureManifest("1.0.0", "Kadr-win-x64.exe", sampleHash, Convert.ToBase64String(signature)),
+                "1.0.0", "Kadr-win-x64.exe", sampleHash, signingKey.PublicKey.Export(KeyBlobFormat.RawPublicKey));
+            bool passed = availableOffline && english && russian && signatures;
             await File.WriteAllTextAsync(outputPath, JsonSerializer.Serialize(new
             {
                 Passed = passed, ModelsAvailableOffline = availableOffline, EnglishRecognized = english, RussianRecognized = russian,
-                ModelChecksumsVerified = true, ElapsedMs = watch.Elapsed.TotalMilliseconds,
+                ModelChecksumsVerified = true, UpdateSignaturesAvailable = signatures, ElapsedMs = watch.Elapsed.TotalMilliseconds,
                 Executable = Environment.ProcessPath, AppContext.BaseDirectory, NativeDirectory = TesseractEnviornment.CustomSearchPath,
                 NativeModules = nativeModules
             }, new JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);

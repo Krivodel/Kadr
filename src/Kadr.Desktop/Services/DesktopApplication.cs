@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.ComponentModel;
 
 using Microsoft.Extensions.Logging;
 
@@ -14,6 +15,8 @@ using Kadr.Desktop.Resources;
 using Kadr.Desktop.Services.Capture;
 using Kadr.Desktop.Services.Input;
 using Kadr.Desktop.Services.Settings;
+using Kadr.Desktop.Services.Updates;
+using Kadr.Desktop.Services.Errors;
 using Kadr.Desktop.ViewModels;
 using Kadr.Desktop.Views;
 
@@ -37,10 +40,16 @@ internal sealed class DesktopApplication : IAsyncDisposable
     private EditorViewModel? _editor;
     private SettingsWindow? _settingsWindow;
     private int _capturing;
+    private readonly UpdateViewModel _updates;
+    private readonly UpdateSessionStore _sessions;
+    private readonly IUpdateService _updateService;
+    private Task? _updateChecks;
+    private bool _restarting;
 
     internal DesktopApplication(ICaptureService capture, GlobalHotkeyService hotkey, SettingsStore settings,
         Func<CapturedDesktop, EditorViewModel> createEditor, Func<bool, SettingsViewModel> createSettings,
-        ILogger<DesktopApplication> logger, IClassicDesktopStyleApplicationLifetime lifetime, ILocalizationService localization)
+        ILogger<DesktopApplication> logger, IClassicDesktopStyleApplicationLifetime lifetime, ILocalizationService localization,
+        IUpdateService updates, UpdateSessionStore sessions, IViewModelErrorHandler updateErrors)
     {
         _capture = capture;
         _hotkey = hotkey;
@@ -50,6 +59,10 @@ internal sealed class DesktopApplication : IAsyncDisposable
         _logger = logger;
         _lifetime = lifetime;
         _localization = localization;
+        _sessions = sessions;
+        _updateService = updates;
+        _updates = new UpdateViewModel(updates, SaveUpdateSessionAsync, RestartAfterUpdate, updateErrors, _sessions.Complete);
+        _updates.PropertyChanged += OnUpdateChanged;
         NativeMenu menu = new();
         NativeMenuItem captureItem = new(UiText.Get("Kadr.Capture"));
         NativeMenuItem settingsItem = new(UiText.Get("Kadr.Settings"));
@@ -71,14 +84,25 @@ internal sealed class DesktopApplication : IAsyncDisposable
         _settings.Changed += OnSettingsChanged;
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _stop.Cancel();
+        _updates.PropertyChanged -= OnUpdateChanged;
+        _updates.Dispose();
+        if (_updateChecks is not null)
+        {
+            try
+            {
+                await _updateChecks.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
         _tray.Dispose();
         _hotkey.Activated -= OnCaptureRequested;
         _settings.Changed -= OnSettingsChanged;
         _stop.Dispose();
-        return ValueTask.CompletedTask;
     }
 
     internal async Task InitializeAsync(string[] args, CancellationToken ct)
@@ -117,6 +141,107 @@ internal sealed class DesktopApplication : IAsyncDisposable
         {
             ShowSettings(null);
         }
+        if (!args.Contains("--smoke-test", StringComparer.Ordinal))
+        {
+            await RestoreUpdateSessionAsync(args, ct);
+            Progress<UpdateRelease?> releases = new(_updates.SetRelease);
+            _updateChecks = Task.Run(() => CheckUpdatesAsync(releases, _stop.Token));
+        }
+    }
+
+    private async Task CheckUpdatesAsync(IProgress<UpdateRelease?> progress, CancellationToken ct)
+    {
+        using PeriodicTimer timer = new(TimeSpan.FromHours(6));
+        do
+        {
+            try
+            {
+                progress.Report(await _updateService.CheckAsync(ct).ConfigureAwait(false));
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "The automatic update check failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false));
+    }
+
+    private async Task<string> SaveUpdateSessionAsync(CancellationToken ct)
+    {
+        EditorViewModel editor = _editor ?? throw new InvalidOperationException("The screenshot editor is closed.");
+        foreach (EditorWindow window in _editors)
+        {
+            window.PrepareForUpdate();
+        }
+        await editor.RememberPreferencesAsync(ct);
+        EditorSessionSnapshot snapshot = EditorSessionSnapshot.Capture(editor);
+        return await Task.Run(() => _sessions.SaveAsync(snapshot, ct), ct);
+    }
+
+    private void RestartAfterUpdate()
+    {
+        _restarting = true;
+        _lifetime.Shutdown();
+    }
+
+    private void OnUpdateChanged(object? sender, PropertyChangedEventArgs arguments)
+    {
+        if (arguments.PropertyName == nameof(UpdateViewModel.IsLoading) && _editor is not null)
+        {
+            _editor.IsLoading = _updates.IsLoading;
+        }
+    }
+
+    private async Task RestoreUpdateSessionAsync(string[] args, CancellationToken ct)
+    {
+        try
+        {
+            int index = Array.IndexOf(args, "--resume-update");
+            string? id = index >= 0 && index + 1 < args.Length ? args[index + 1] : await _sessions.GetPendingAsync(ct);
+            if (id is null)
+            {
+                return;
+            }
+            if (Interlocked.CompareExchange(ref _capturing, 1, 0) != 0)
+            {
+                return;
+            }
+            EditorSessionSnapshot snapshot = await Task.Run(() => _sessions.LoadAsync(id, ct), ct);
+            CapturedDesktop desktop = await Task.Run(snapshot.CreateDesktop, ct);
+            OpenEditor(desktop, snapshot);
+            Interlocked.Exchange(ref _capturing, 1);
+            _sessions.Complete(id);
+        }
+        catch (Exception exception)
+        {
+            if (_editor is null)
+            {
+                Interlocked.Exchange(ref _capturing, 0);
+            }
+            _logger.LogError(exception, "The screenshot session could not be restored after updating");
+            ShowSettings(UiText.Get("Kadr.UpdateRestoreFailed"));
+        }
+    }
+
+    private void OpenEditor(CapturedDesktop desktop, EditorSessionSnapshot? snapshot = null)
+    {
+        _editor = _createEditor(desktop);
+        _editor.Updates = _updates;
+        snapshot?.Restore(_editor);
+        _editor.CloseRequested += OnEditorFinished;
+        _editor.SettingsRequested += OnEditorSettings;
+        foreach (DesktopMonitor monitor in desktop.Monitors)
+        {
+            EditorWindow window = new(_editor, monitor, _settings);
+            _editors.Add(window);
+            window.Closing += OnEditorClosing;
+            window.Show();
+        }
+        _editors.FirstOrDefault(window => NativeDesktop.IsPointerOnMonitor(window.Monitor))?.Activate();
     }
 
     internal Task RunEditorProbeAsync(string path, CancellationToken ct)
@@ -126,6 +251,10 @@ internal sealed class DesktopApplication : IAsyncDisposable
 
     private async Task ActivateAsync()
     {
+        if (_updates.IsLoading)
+        {
+            return;
+        }
         if (Interlocked.CompareExchange(ref _capturing, 1, 0) != 0)
         {
             return;
@@ -137,19 +266,7 @@ internal sealed class DesktopApplication : IAsyncDisposable
             CapturedDesktop desktop = await _capture.CaptureAsync(_stop.Token).ConfigureAwait(false);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                _editor = _createEditor(desktop);
-                _editor.CloseRequested += OnEditorFinished;
-                _editor.SettingsRequested += OnEditorSettings;
-
-                foreach (DesktopMonitor monitor in desktop.Monitors)
-                {
-                    EditorWindow window = new(_editor, monitor, _settings);
-                    _editors.Add(window);
-                    window.Closing += OnEditorClosing;
-                    window.Show();
-                }
-
-                _editors.FirstOrDefault(window => NativeDesktop.IsPointerOnMonitor(window.Monitor))?.Activate();
+                OpenEditor(desktop);
                 _logger.LogInformation("Editor windows created after {ElapsedMs} ms; capture readback {ReadbackMs} ms",
                     Stopwatch.GetElapsedTime(desktop.Metrics.RequestedAt).TotalMilliseconds, desktop.Metrics.ReadbackMilliseconds);
             });
@@ -242,10 +359,22 @@ internal sealed class DesktopApplication : IAsyncDisposable
     private void ApplyEditorSettings()
     {
         _editor?.ApplySettings(_settings.Current);
+        _updates.RefreshLocalization();
     }
 
     private void OnExitRequested(object? sender, EventArgs arguments)
     {
+        _ = ExitAsync();
+    }
+
+    private async Task ExitAsync()
+    {
+        _updates.Dispose();
+        if (_updates.ApplyCommand.ExecutionTask is Task applying)
+        {
+            await applying;
+        }
+        _restarting = true;
         _lifetime.Shutdown();
     }
 
@@ -266,6 +395,10 @@ internal sealed class DesktopApplication : IAsyncDisposable
 
     private void OnEditorClosing(object? sender, WindowClosingEventArgs arguments)
     {
+        if (_restarting)
+        {
+            return;
+        }
         arguments.Cancel = true;
 
         if (_editor is { IsLoading: false })

@@ -4,6 +4,8 @@ Kadr uses Avalonia (MIT), CommunityToolkit.Mvvm (MIT), Microsoft .NET and Extens
 
 Interface translations use Krivodeling.Localization.Avalonia 1.0.1 (MIT) and Lang.Avalonia 12.0.5.2 (MIT). Their license notices are included in `LICENSES`.
 
+Portable updates use StageKit.Updatum, StageKit.Primitives and StageKit.Runtime 0.4.1 (MIT), Octokit 14.0.0 (MIT), NSec.Cryptography 26.4.0 (MIT) and libsodium 1.0.22 (ISC). Their licenses and NSec's third-party notice are included in `LICENSES`.
+
 Settings scrolling adapts the smooth scrolling behavior from AtomicArt (MIT, Copyright 2026 Krivodel). Its license is included as `LICENSES/AtomicArt.txt`.
 
 Tesseract native DLLs are supplied by the Tesseract 5.2.0 NuGet package. The English and Russian model files are pinned to tessdata_best Git tree e12c65a915945e4c28e237a9b52bc4a8f39a0cec. The full model manifest is embedded in the application and verifies Git blob checksums before installation.

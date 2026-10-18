@@ -57,4 +57,25 @@ public sealed class DocumentHistory
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    public DocumentHistorySnapshot GetSnapshot()
+    {
+        return new DocumentHistorySnapshot(_undo.ToImmutableArray(), _redo.Reverse().ToImmutableArray());
+    }
+
+    public void Restore(DocumentHistorySnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        _undo.Clear();
+        _redo.Clear();
+        foreach (ImmutableArray<DrawingElement> elements in snapshot.Undo.TakeLast(Capacity))
+        {
+            _undo.AddLast(elements);
+        }
+        foreach (ImmutableArray<DrawingElement> elements in snapshot.Redo.TakeLast(Capacity))
+        {
+            _redo.Push(elements);
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 }

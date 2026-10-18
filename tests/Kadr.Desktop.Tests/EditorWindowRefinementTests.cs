@@ -368,7 +368,7 @@ public sealed class EditorWindowRefinementTests
             Assert.NotNull(actions);
             Assert.Equal(54, actions.Bounds.Width);
 
-            foreach (Button button in actions.GetVisualDescendants().OfType<Button>())
+            foreach (Button button in actions.GetVisualDescendants().OfType<Button>().Where(button => button.IsVisible))
             {
                 Point position = button.TranslatePoint(new Point(button.Bounds.Width / 2, 0), actions) ?? throw new InvalidOperationException();
                 Assert.Equal(actions.Bounds.Width / 2, position.X, 1);

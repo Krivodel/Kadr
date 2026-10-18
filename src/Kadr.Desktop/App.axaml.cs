@@ -14,6 +14,8 @@ using Kadr.Desktop.Services.Input;
 using Kadr.Desktop.Services.Ocr;
 using Kadr.Desktop.Services.Rendering;
 using Kadr.Desktop.Services.Settings;
+using Kadr.Desktop.Services.Updates;
+using Kadr.Desktop.Services.Errors;
 using Kadr.Desktop.Services;
 using Kadr.Desktop.ViewModels;
 
@@ -46,6 +48,10 @@ public sealed partial class App : Application
             services.AddSingleton<AutoStartService>();
             services.AddSingleton<ISettingsApplication, SettingsApplication>();
             services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromMinutes(5) });
+            services.AddHttpClient("Updates", client => client.Timeout = TimeSpan.FromHours(1));
+            services.AddSingleton<IUpdateService>(provider => new GitHubUpdateService(provider.GetRequiredService<IHttpClientFactory>().CreateClient("Updates")));
+            services.AddSingleton(new UpdateSessionStore());
+            services.AddSingleton<IViewModelErrorHandler, UpdateErrorHandler>();
             services.AddSingleton<OcrModelStore>();
             services.AddSingleton<IOcrService, TesseractOcrService>();
             services.AddSingleton(new DrawingToolRegistry());
@@ -63,7 +69,8 @@ public sealed partial class App : Application
                 canToggle => new SettingsViewModel(provider.GetRequiredService<SettingsStore>(), provider.GetRequiredService<ISettingsApplication>(),
                     provider.GetRequiredService<OcrModelStore>(), provider.GetRequiredService<ILogger<SettingsViewModel>>(), canToggle,
                     provider.GetRequiredService<ILocalizationService>()),
-                provider.GetRequiredService<ILogger<DesktopApplication>>(), lifetime, provider.GetRequiredService<ILocalizationService>());
+                provider.GetRequiredService<ILogger<DesktopApplication>>(), lifetime, provider.GetRequiredService<ILocalizationService>(),
+                provider.GetRequiredService<IUpdateService>(), provider.GetRequiredService<UpdateSessionStore>(), provider.GetRequiredService<IViewModelErrorHandler>());
             lifetime.Startup += OnStartup;
             lifetime.Exit += OnExit;
             Avalonia.Threading.Dispatcher.UIThread.UnhandledException += OnUnhandledException;

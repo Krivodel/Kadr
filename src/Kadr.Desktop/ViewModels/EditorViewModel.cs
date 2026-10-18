@@ -23,6 +23,7 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     {
         get;
     }
+    public UpdateViewModel? Updates { get; internal set; }
     public EditorInteraction Interaction
     {
         get;
@@ -37,6 +38,7 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     public IReadOnlyList<DrawingTool> DrawingTools => Toolbar.DrawingTools;
     public int VisibleToolCount => LabelTools.Count + DrawingTools.Count;
     public bool HasErrorMessage => !string.IsNullOrWhiteSpace(ErrorMessage);
+    public bool ShowOperationProgress => IsLoading && Updates?.IsLoading != true;
 
     public event EventHandler? CloseRequested;
     public event EventHandler? SettingsRequested;
@@ -50,7 +52,7 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     private readonly ILogger<EditorViewModel> _logger;
 
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasErrorMessage))] private string? _errorMessage;
-    [ObservableProperty] private bool _isLoading;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(ShowOperationProgress))] private bool _isLoading;
     [ObservableProperty] private bool _isPreview;
     [ObservableProperty] private bool _isAdjustingThickness;
     private uint _colorBaseline;

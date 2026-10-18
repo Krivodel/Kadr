@@ -1,8 +1,12 @@
 <Solution>
+  <Folder Name="/eng/">
+    <Project Path="eng/Kadr.ReleaseTool/Kadr.ReleaseTool.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Kadr.Desktop/Kadr.Desktop.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Kadr.Desktop.Tests/Kadr.Desktop.Tests.csproj" />
+    <Project Path="tests/Kadr.UpdateProbe/Kadr.UpdateProbe.csproj" />
   </Folder>
 </Solution>

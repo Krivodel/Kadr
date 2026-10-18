@@ -379,6 +379,12 @@ public sealed class EditorInteraction
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    public void RestoreSelection(Guid? selectedId)
+    {
+        SelectedId = _document.Elements.Any(element => element.Id == selectedId) ? selectedId : null;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     public void UpdateText(string text)
     {
         ArgumentNullException.ThrowIfNull(text);

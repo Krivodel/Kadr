@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NSec.Cryptography" Version="26.4.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.9" />
+    <Compile Include="../../src/Kadr.Desktop/Services/Updates/UpdateSignature.cs" Link="UpdateSignature.cs" />
+    <Compile Include="../../src/Kadr.Desktop/Services/Updates/UpdateSignatureManifest.cs" Link="UpdateSignatureManifest.cs" />
+    <EmbeddedResource Include="../../src/Kadr.Desktop/Resources/Updates/public-key.txt" LogicalName="Kadr.UpdatePublicKey" Condition="Exists('../../src/Kadr.Desktop/Resources/Updates/public-key.txt')" />
+  </ItemGroup>
+</Project>

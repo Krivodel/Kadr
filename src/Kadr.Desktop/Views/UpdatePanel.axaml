@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i18n="https://codewf.com"
+             xmlns:vm="using:Kadr.Desktop.ViewModels"
+             x:Class="Kadr.Desktop.Views.UpdatePanel"
+             x:DataType="vm:UpdateViewModel"
+             ClipToBounds="False">
+    <UserControl.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.14" />
+        </Transitions>
+    </UserControl.Transitions>
+    <Border Classes="toolbar" Width="350" Padding="22" CornerRadius="16">
+        <StackPanel Spacing="18">
+            <StackPanel Spacing="8">
+                <TextBlock Text="{Binding Title}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{i18n:I18n Kadr.UpdateQuestion}" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}" IsVisible="{Binding ShowConfirmation}" />
+            </StackPanel>
+            <StackPanel Spacing="12" IsVisible="{Binding IsLoading}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding Status}" FontSize="13" TextWrapping="Wrap" Margin="0,0,12,0" />
+                    <TextBlock Grid.Column="1" Text="{Binding Percentage, StringFormat='{}{0:0}%'}" Foreground="{StaticResource SecondaryTextBrush}" IsVisible="{Binding !IsIndeterminate}" />
+                </Grid>
+                <ProgressBar Minimum="0" Maximum="100" Value="{Binding Percentage}" IsIndeterminate="{Binding IsIndeterminate}" Height="6" CornerRadius="3" Foreground="#459BFF" />
+            </StackPanel>
+            <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasErrorMessage}" Foreground="{StaticResource ErrorTextBrush}" TextWrapping="Wrap" FontSize="13" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding ShowConfirmation}">
+                <Button Content="{i18n:I18n Kadr.UpdateNotNow}" Command="{Binding DismissCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Height="38" Cursor="Hand" />
+                <Button Grid.Column="1" Content="{i18n:I18n Kadr.UpdateApply}" Command="{Binding ApplyCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Height="38" Background="#297FEE" Foreground="White" Cursor="Hand" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

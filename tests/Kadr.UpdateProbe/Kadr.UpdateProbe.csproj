@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <Version>1.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Kadr.Desktop/Kadr.Desktop.csproj" />
+    <Compile Include="../Kadr.Desktop.Tests/EditorTestServices.cs" Link="EditorTestServices.cs" />
+    <Compile Include="../Kadr.Desktop.Tests/TestDocuments.cs" Link="TestDocuments.cs" />
+    <Compile Include="../../src/Kadr.Desktop/Services/Updates/UpdateRestartScript.cs" Link="UpdateRestartScript.cs" />
+  </ItemGroup>
+</Project>

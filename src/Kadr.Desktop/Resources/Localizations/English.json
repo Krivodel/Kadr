@@ -3,6 +3,18 @@
   "culture": "en-US",
   "strings": {
     "Kadr": {
+      "UpdateVerificationFailed": "The update could not be authenticated.",
+      "UpdateFolderReadOnly": "The application folder is not writable. Move Kadr to a writable folder and try again.",
+      "UpdateAvailable": "Update available {0}",
+      "UpdateQuestion": "Update?",
+      "UpdateNotNow": "Not now",
+      "UpdateApply": "Update",
+      "UpdateDownloading": "Downloading update…",
+      "UpdateVerifying": "Verifying update…",
+      "UpdateSavingSession": "Saving screenshot…",
+      "UpdateRestarting": "Installing and restarting…",
+      "UpdateFailed": "Could not update the application. Check your connection and write access to the application folder, then try again.",
+      "UpdateRestoreFailed": "Could not restore the screenshot after updating. The recovery file has been kept.",
       "OutsideSelection": "Outside the selected area",
       "Toolbar": "Toolbars",
       "OutsideResize": "Resize the existing selection",

@@ -19,6 +19,9 @@ public sealed class DistributionNoticesTests
             Assert.Contains("https://aka.ms/vs/17/redist.txt", notices);
             Assert.Contains("Copyright", await File.ReadAllTextAsync(Path.Combine(directory, "Lang.Avalonia-MIT.txt")));
             Assert.False(File.Exists(Path.Combine(directory, "Microsoft-Visual-Studio-Redist.txt")));
+            Assert.Contains("Tiago", await File.ReadAllTextAsync(Path.Combine(directory, "StageKit-MIT.txt")));
+            Assert.Contains("Klaus", await File.ReadAllTextAsync(Path.Combine(directory, "NSec-MIT.txt")));
+            Assert.Contains("Frank Denis", await File.ReadAllTextAsync(Path.Combine(directory, "libsodium-ISC.txt")));
         }
         finally
         {

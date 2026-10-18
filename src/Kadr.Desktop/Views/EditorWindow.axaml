@@ -3,6 +3,7 @@
         xmlns:i18n="https://codewf.com"
         xmlns:rendering="using:Kadr.Desktop.Services.Rendering"
         xmlns:vm="using:Kadr.Desktop.ViewModels"
+        xmlns:views="using:Kadr.Desktop.Views"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Kadr.Desktop.Views.EditorWindow"
         x:DataType="vm:EditorViewModel"
@@ -36,6 +37,15 @@
                 <StackPanel Width="38"
                             HorizontalAlignment="Center"
                             Spacing="3">
+                    <Button x:Name="UpdateButton" Classes="tool" IsVisible="{Binding Updates.IsAvailable, FallbackValue=False, TargetNullValue=False}"
+                            AutomationProperties.Name="{i18n:I18n Kadr.UpdateApply}" Command="{Binding Updates.OpenCommand}">
+                        <Grid Width="24" Height="24">
+                            <controls:VectorIcon Data="M12,3 V15 M7,10 L12,15 L17,10 M4,17 V20 C4,21 5,21 6,21 H18 C19,21 20,21 20,20 V17" />
+                            <Ellipse Width="7" Height="7" Fill="#459BFF" Stroke="#182333" StrokeThickness="1.5"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-5,0" IsHitTestVisible="False" />
+                        </Grid>
+                    </Button>
+                    <Separator Width="30" HorizontalAlignment="Center" IsVisible="{Binding Updates.IsAvailable, FallbackValue=False, TargetNullValue=False}" />
                     <Button Classes="tool"
                             IsVisible="{Binding Toolbar.Copy}"
                             AutomationProperties.Name="{i18n:I18n Kadr.Copy}"
@@ -189,6 +199,7 @@
                      SelectionBrush="#503F98FF"
                      SelectionForegroundBrush="Transparent"
                      TextWrapping="NoWrap" />
+            <views:UpdatePanel x:Name="UpdatePopup" DataContext="{Binding Updates}" IsHitTestVisible="False" Opacity="0" />
         </Canvas>
         <StackPanel MaxWidth="600"
                     Margin="24"
@@ -204,7 +215,7 @@
                            TextWrapping="Wrap" />
             </Border>
             <ProgressBar Height="3"
-                         IsVisible="{Binding IsLoading}"
+                         IsVisible="{Binding ShowOperationProgress}"
                          IsIndeterminate="True" />
         </StackPanel>
     </Grid>
