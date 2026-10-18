@@ -12,7 +12,6 @@ dotnet run --project src/Kadr.Desktop # Run
 dotnet test Kadr.slnx -c Release # Tests
 ./eng/Publish.ps1 # Self-contained EXE
 ./eng/VerifySingleFile.ps1 -ExecutablePath ./artifacts/single-file/Kadr.exe
-python ./eng/GenerateIcon.py # Generate the icon and convert SVG to PNG/ICO; requires Pillow
 ```
 
 Publishing creates a self-contained `artifacts/single-file/Kadr.exe`. Visual C++ x64 CRT files from Visual Studio 2022 are required; use `-CrtDirectory` to specify a different directory.
