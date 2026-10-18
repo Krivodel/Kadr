@@ -14,6 +14,7 @@ dotnet run --project src/Kadr.Desktop
 dotnet test Kadr.slnx -c Release
 ./eng/Publish.ps1 # Self-contained EXE
 ./eng/PrepareRelease.ps1 # Build and sign GitHub release assets
+./eng/Release.ps1 # Test, build, sign and publish a GitHub Release
 ./eng/VerifySingleFile.ps1 -ExecutablePath ./artifacts/single-file/Kadr.exe
 ./eng/Clean.ps1 -WhatIf # List files; omit -WhatIf to delete
 ```

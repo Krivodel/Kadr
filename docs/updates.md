@@ -2,11 +2,18 @@
 
 ## Release
 
-1. Set `<Version>` in `src/Kadr.Desktop/Kadr.Desktop.csproj` and run tests.
-2. Run `./eng/PrepareRelease.ps1`.
-3. Upload `Kadr-win-x64.exe`, `Kadr-win-x64.exe.sha256` and `Kadr-win-x64.exe.sig` from `artifacts/release` to a public stable release in `Krivodel/Kadr`, tagged `v{version}`. Do not change the EXE after signing.
+Install the Windows amd64 MSI from [GitHub CLI releases](https://github.com/cli/cli/releases/latest), reopen the terminal, then run `gh auth login` and `gh auth setup-git`.
 
-Use `-SkipPublish` to sign an existing build, or `-PublishDirectory artifacts/single-file-update` if the default output EXE is running.
+1. Set a new stable `<Version>` (`X.Y.Z`) in `src/Kadr.Desktop/Kadr.Desktop.csproj` and commit the changes.
+2. Run `./eng/Release.ps1` in PowerShell 7.2+.
+
+The script tests, builds, signs and verifies the single-file EXE, pushes the current branch and `v{version}` tag to `origin`, uploads the EXE, SHA-256 and signature, verifies the uploaded hashes, then publishes a stable GitHub Release in `Krivodel/Kadr`. Release notes are generated from GitHub; use `-NotesFile ./notes.md` for your own notes or `-CrtDirectory` for a custom CRT directory. `-WhatIf` previews the operation without building or publishing.
+
+If an upload fails, rerun from the same commit to resume the draft. Published versions are never overwritten. Do not change the EXE after signing.
+
+For local assets without uploading, use `./eng/PrepareRelease.ps1` (`-SkipPublish` to sign an existing build, `-PublishDirectory` for another build directory).
+
+`./eng/VerifyRelease.ps1` tests the release workflow with local Git repositories and simulated GitHub responses, without publishing anything.
 
 Kadr checks releases at startup and every six hours. Updates require a published single-file EXE in a writable directory.
 
