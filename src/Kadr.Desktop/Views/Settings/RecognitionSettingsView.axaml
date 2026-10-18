@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:i18n="https://codewf.com"
+             xmlns:vm="using:Kadr.Desktop.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kadr.Desktop.Views.Settings.RecognitionSettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <StackPanel Spacing="16">
+        <TextBox PlaceholderText="{i18n:I18n Kadr.FindLanguage}"
+                 Text="{Binding LanguageQuery}" />
+        <ItemsControl ItemsSource="{Binding VisibleLanguages}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:OcrLanguageViewModel">
+                    <ToggleSwitch Margin="0,0,0,6"
+                                  Padding="16,12"
+                                  Classes="setting-row"
+                                  AutomationProperties.Name="{Binding Name}"
+                                  Background="#151F2F"
+                                  Content="{Binding Name}"
+                                  CornerRadius="10"
+                                  IsChecked="{Binding IsSelected}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:i18n="https://codewf.com"
+             xmlns:vm="using:Kadr.Desktop.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kadr.Desktop.Views.Settings.ShortcutSettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <StackPanel Spacing="14">
+        <TextBox PlaceholderText="{i18n:I18n Kadr.FindAction}"
+                 Text="{Binding ShortcutQuery}" />
+        <Grid Margin="12,6,12,0"
+              ColumnDefinitions="*,132,132,30"
+              ColumnSpacing="6">
+            <TextBlock Classes="muted"
+                       Text="{i18n:I18n Kadr.Action}" />
+            <TextBlock Grid.Column="1"
+                       Classes="muted"
+                       Text="{i18n:I18n Kadr.General}" />
+            <TextBlock Grid.Column="2"
+                       Classes="muted"
+                       Text="{i18n:I18n Kadr.Alternative}" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding VisibleShortcuts}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShortcutBindingViewModel">
+                    <Border Margin="0,0,0,6"
+                            Padding="12,8"
+                            Background="#151F2F"
+                            CornerRadius="10">
+                        <Grid ColumnDefinitions="*,132,132,30"
+                              ColumnSpacing="6">
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding Name}"
+                                       TextWrapping="Wrap" />
+                            <Button Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    Classes="key-binding"
+                                    Content="{Binding DisplayName}" />
+                            <Button Grid.Column="2"
+                                    HorizontalAlignment="Stretch"
+                                    Classes="key-binding"
+                                    Content="{Binding AlternativeDisplayName}"
+                                    Tag="alternative" />
+                            <Button Grid.Column="3"
+                                    Padding="3"
+                                    Classes="subtle"
+                                    AutomationProperties.Name="{i18n:I18n Kadr.ClearAlternative}"
+                                    Content="×"
+                                    Command="{Binding ClearAlternativeCommand}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

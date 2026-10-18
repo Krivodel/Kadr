@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:vm="using:Kadr.Desktop.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kadr.Desktop.Views.Settings.ToolbarSettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <UserControl.Resources>
+        <DataTemplate x:DataType="vm:ToolbarItemViewModel"
+                      x:Key="ToolbarVisibilityTemplate">
+            <ToggleSwitch Margin="0,2"
+                          Classes="setting-row"
+                          AutomationProperties.Name="{Binding Name}"
+                          Content="{Binding Name}"
+                          IsChecked="{Binding IsVisible}" />
+        </DataTemplate>
+    </UserControl.Resources>
+    <Border VerticalAlignment="Top"
+            Classes="card">
+        <StackPanel Spacing="20">
+            <ItemsControl ItemTemplate="{StaticResource ToolbarVisibilityTemplate}"
+                          ItemsSource="{Binding ActionPanelItems}" />
+            <Border Height="1"
+                    Background="{StaticResource PanelBorderBrush}" />
+            <ItemsControl ItemTemplate="{StaticResource ToolbarVisibilityTemplate}"
+                          ItemsSource="{Binding DrawingPanelItems}" />
+        </StackPanel>
+    </Border>
+</UserControl>

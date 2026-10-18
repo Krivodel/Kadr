@@ -1,0 +1,7 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Keep OCR models and raster assets byte-for-byte intact.
+*.traineddata binary
+*.png binary
+*.ico binary

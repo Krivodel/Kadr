@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:controls="using:Kadr.Desktop.Controls"
+             xmlns:i18n="https://codewf.com"
+             xmlns:localization="clr-namespace:Krivodeling.Localization.Avalonia;assembly=Krivodeling.Localization.Avalonia"
+             xmlns:vm="using:Kadr.Desktop.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kadr.Desktop.Views.Settings.GeneralSettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <StackPanel Spacing="16">
+        <Border Classes="card">
+            <StackPanel Spacing="14">
+                <TextBlock Classes="card-title"
+                           Text="{i18n:I18n Kadr.InterfaceLanguage}" />
+                <controls:StableComboBox x:Name="InterfaceLanguageBox"
+                                         HorizontalAlignment="Stretch"
+                                         SelectedValueBinding="{Binding Id}"
+                                         ItemsSource="{Binding InterfaceLanguages}"
+                                         SelectedValue="{Binding LocalizationId}">
+                    <controls:StableComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="localization:LocalizationOption">
+                            <TextBlock Text="{Binding Id}" />
+                        </DataTemplate>
+                    </controls:StableComboBox.ItemTemplate>
+                </controls:StableComboBox>
+            </StackPanel>
+        </Border>
+        <Border Classes="card">
+            <StackPanel Spacing="16">
+                <TextBlock Classes="card-title"
+                           Text="{i18n:I18n Kadr.CaptureSection}" />
+                <TextBlock Text="{i18n:I18n Kadr.CaptureBackend}" />
+                <controls:StableComboBox HorizontalAlignment="Stretch"
+                                         SelectedIndex="{Binding BackendIndex}">
+                    <ComboBoxItem Content="Desktop Duplication" />
+                    <ComboBoxItem IsEnabled="{Binding IsWgcAvailable}"
+                                  Content="Windows Graphics Capture" />
+                </controls:StableComboBox>
+                <TextBlock Text="{i18n:I18n Kadr.CaptureMode}" />
+                <controls:StableComboBox x:Name="CaptureModeBox"
+                                         HorizontalAlignment="Stretch"
+                                         ItemsSource="{Binding CaptureModes}"
+                                         SelectedIndex="{Binding ModeIndex}">
+                    <controls:StableComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LocalizedOptionViewModel">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </controls:StableComboBox.ItemTemplate>
+                </controls:StableComboBox>
+            </StackPanel>
+        </Border>
+        <Border Classes="card">
+            <StackPanel Spacing="14">
+                <TextBlock Classes="card-title"
+                           Text="{i18n:I18n Kadr.CopySection}" />
+                <controls:StableComboBox x:Name="CopyFormatBox"
+                                         HorizontalAlignment="Stretch"
+                                         ItemsSource="{Binding CopyFormats}"
+                                         SelectedIndex="{Binding CopyFormatIndex}">
+                    <controls:StableComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LocalizedOptionViewModel">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </controls:StableComboBox.ItemTemplate>
+                </controls:StableComboBox>
+            </StackPanel>
+        </Border>
+        <Border Classes="card">
+            <StackPanel Spacing="14">
+                <TextBlock Classes="card-title"
+                           Text="{i18n:I18n Kadr.OutsideSelection}" />
+                <controls:StableComboBox HorizontalAlignment="Stretch"
+                                         ItemsSource="{Binding OutsideSelectionModes}"
+                                         SelectedIndex="{Binding OutsideSelectionIndex}">
+                    <controls:StableComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LocalizedOptionViewModel">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </controls:StableComboBox.ItemTemplate>
+                </controls:StableComboBox>
+            </StackPanel>
+        </Border>
+        <ToggleSwitch Padding="20"
+                      Classes="setting-card"
+                      AutomationProperties.Name="{i18n:I18n Kadr.AutoStart}"
+                      Content="{i18n:I18n Kadr.AutoStart}"
+                      IsChecked="{Binding AutoStart}" />
+    </StackPanel>
+</UserControl>

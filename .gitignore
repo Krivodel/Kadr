@@ -1,0 +1,56 @@
+# Build and publish output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+bld/
+/artifacts/
+/publish/
+/.tools/
+
+# IDE and per-user settings
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+
+# Test results, coverage and diagnostics
+[Tt]est[Rr]esult*/
+[Cc]overage/
+CodeCoverage/
+[Ll]og/
+[Ll]ogs/
+*.log
+*.binlog
+*.trx
+*.coverage
+*.coveragexml
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# NuGet package output
+*.nupkg
+*.snupkg
+
+# Local environment and private certificates
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+
+# Temporary files
+.ai-thoughts/
+.DS_Store
+Thumbs.db
+Desktop.ini
+~$*
+*~
+*.tmp
+*.bak

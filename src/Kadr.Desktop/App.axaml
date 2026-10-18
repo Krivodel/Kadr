@@ -1,0 +1,268 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:controls="using:Kadr.Desktop.Controls"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kadr.Desktop.App"
+             RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <CornerRadius x:Key="OverlayCornerRadius">10</CornerRadius>
+        <Color x:Key="SecondaryTextColor">
+            #9EA9BC
+        </Color>
+        <Color x:Key="ErrorTextColor">
+            #FFA7A7
+        </Color>
+        <Color x:Key="PanelBorderColor">
+            #445168
+        </Color>
+        <SolidColorBrush x:Key="SecondaryTextBrush"
+                         Color="{StaticResource SecondaryTextColor}" />
+        <SolidColorBrush x:Key="ErrorTextBrush"
+                         Color="{StaticResource ErrorTextColor}" />
+        <SolidColorBrush x:Key="PanelBorderBrush"
+                         Color="{StaticResource PanelBorderColor}" />
+        <Color x:Key="InputBackgroundColor">
+            #1B283D
+        </Color>
+        <Color x:Key="InputHoverColor">
+            #24354D
+        </Color>
+        <Color x:Key="InputPressedColor">
+            #2A3B57
+        </Color>
+        <Color x:Key="InputBorderColor">
+            #30415D
+        </Color>
+        <Color x:Key="InputAccentColor">
+            #8A75F5
+        </Color>
+        <Color x:Key="InputSelectedColor">
+            #40365C
+        </Color>
+        <Color x:Key="InputForegroundColor">
+            #EAF0FA
+        </Color>
+        <Color x:Key="InputPopupColor">
+            #26354E
+        </Color>
+        <Color x:Key="InputTransparentColor">
+            #00000000
+        </Color>
+        <SolidColorBrush x:Key="InputBackgroundBrush"
+                     Color="{StaticResource InputBackgroundColor}" />
+    <SolidColorBrush x:Key="InputForegroundBrush"
+                     Color="{StaticResource InputForegroundColor}" />
+    <SolidColorBrush x:Key="InputBorderBrush"
+                     Color="{StaticResource InputBorderColor}" />
+    <SolidColorBrush x:Key="ComboBoxBackground"
+                         Color="{StaticResource InputBackgroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver"
+                         Color="{StaticResource InputHoverColor}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundPressed"
+                         Color="{StaticResource InputPressedColor}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundDisabled"
+                         Color="{StaticResource InputBackgroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused"
+                         Color="{StaticResource InputBackgroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxBorderBrush"
+                         Color="{StaticResource InputBorderColor}" />
+        <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver"
+                         Color="{StaticResource InputBorderColor}" />
+        <SolidColorBrush x:Key="ComboBoxBorderBrushPressed"
+                         Color="{StaticResource InputBorderColor}" />
+        <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled"
+                         Color="{StaticResource InputBorderColor}" />
+        <SolidColorBrush x:Key="ComboBoxForeground"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxForegroundFocused"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxForegroundDisabled"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused"
+                         Color="{StaticResource InputAccentColor}" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushUnfocused"
+                         Color="{StaticResource InputBorderColor}" />
+        <SolidColorBrush x:Key="ComboBoxDropDownBackground"
+                         Color="{StaticResource InputPopupColor}" />
+        <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush"
+                         Color="{StaticResource PanelBorderColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackground"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrush"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForeground"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver"
+                         Color="#3E5273" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrushPointerOver"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed"
+                         Color="{StaticResource InputPressedColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrushPressed"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForegroundPressed"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected"
+                         Color="{StaticResource InputSelectedColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelected"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForegroundSelected"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver"
+                         Color="#605184" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPointerOver"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed"
+                         Color="{StaticResource InputPressedColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPressed"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundDisabled"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrushDisabled"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForegroundDisabled"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedDisabled"
+                         Color="{StaticResource InputSelectedColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedDisabled"
+                         Color="{StaticResource InputTransparentColor}" />
+        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedDisabled"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="TextControlBackground"
+                         Color="{StaticResource InputBackgroundColor}" />
+        <SolidColorBrush x:Key="TextControlBackgroundPointerOver"
+                         Color="{StaticResource InputHoverColor}" />
+        <SolidColorBrush x:Key="TextControlBackgroundFocused"
+                         Color="{StaticResource InputBackgroundColor}" />
+        <SolidColorBrush x:Key="TextControlBackgroundDisabled"
+                         Color="{StaticResource InputBackgroundColor}" />
+        <SolidColorBrush x:Key="TextControlForeground"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="TextControlBorderBrush"
+                         Color="{StaticResource InputBorderColor}" />
+        <SolidColorBrush x:Key="TextControlForegroundPointerOver"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver"
+                         Color="{StaticResource InputBorderColor}" />
+        <SolidColorBrush x:Key="TextControlForegroundFocused"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="TextControlBorderBrushFocused"
+                         Color="{StaticResource InputAccentColor}" />
+        <SolidColorBrush x:Key="TextControlForegroundDisabled"
+                         Color="{StaticResource InputForegroundColor}" />
+        <SolidColorBrush x:Key="TextControlBorderBrushDisabled"
+                         Color="{StaticResource InputBorderColor}" />
+        <Thickness x:Key="ComboBoxDropdownBorderThickness">
+            1
+        </Thickness>
+        <Thickness x:Key="ComboBoxDropdownBorderPadding">
+            4
+        </Thickness>
+        <Thickness x:Key="TextControlBorderThemeThicknessFocused">
+            1
+        </Thickness>
+    </Application.Resources>
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Kadr/Resources/ButtonStyles.axaml" />
+        <StyleInclude Source="avares://Kadr/Resources/ModernStyles.axaml" />
+        <StyleInclude Source="avares://Kadr/Resources/SettingsChrome.axaml" />
+        <Style Selector="Window">
+            <Setter Property="Background"
+                    Value="#111824" />
+            <Setter Property="Foreground"
+                    Value="#F0F4FC" />
+            <Setter Property="Icon"
+                    Value="avares://Kadr/Assets/AppIcon.ico" />
+        </Style>
+        <Style Selector="TextBox.inline-text /template/ Border#PART_BorderElement">
+            <Setter Property="Background"
+                    Value="Transparent" />
+            <Setter Property="BorderThickness"
+                    Value="0" />
+        </Style>
+        <Style Selector="TextBox.inline-text:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background"
+                    Value="Transparent" />
+        </Style>
+        <Style Selector="TextBox.inline-text:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background"
+                    Value="Transparent" />
+            <Setter Property="BorderThickness"
+                    Value="0" />
+        </Style>
+        <Style Selector="Border.floating-preview">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Duration="{x:Static controls:UiAnimationDuration.PanelFade}"
+                                      Property="Opacity" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="controls|VectorIcon">
+            <Setter Property="Width"
+                    Value="22" />
+            <Setter Property="Height"
+                    Value="22" />
+            <Setter Property="FlowDirection"
+                    Value="LeftToRight" />
+        </Style>
+        <Style Selector="Window.thickness-drag Button">
+            <Setter Property="Cursor"
+                    Value="None" />
+        </Style>
+        <Style Selector="Window.thickness-drag TextBox">
+            <Setter Property="Cursor"
+                    Value="None" />
+        </Style>
+        <Style Selector="Window.thickness-drag ScrollViewer">
+            <Setter Property="Cursor"
+                    Value="None" />
+        </Style>
+        <Style Selector="Border.toolbar">
+            <Setter Property="Background"
+                    Value="#FF1A2333" />
+            <Setter Property="BorderBrush"
+                    Value="{StaticResource PanelBorderBrush}" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="CornerRadius"
+                    Value="11" />
+            <Setter Property="Padding"
+                    Value="7" />
+            <Setter Property="BoxShadow"
+                    Value="0 5 18 0 #70000000" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Duration="{x:Static controls:UiAnimationDuration.PanelFade}"
+                                      Property="Opacity" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.divider">
+            <Setter Property="Width"
+                    Value="1" />
+            <Setter Property="Height"
+                    Value="24" />
+            <Setter Property="Margin"
+                    Value="5,0" />
+            <Setter Property="Background"
+                    Value="{StaticResource PanelBorderBrush}" />
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize"
+                    Value="11" />
+            <Setter Property="FontWeight"
+                    Value="SemiBold" />
+            <Setter Property="Foreground"
+                    Value="#7E9BC6" />
+        </Style>
+    </Application.Styles>
+</Application>

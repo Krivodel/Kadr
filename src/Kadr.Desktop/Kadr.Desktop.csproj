@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/AppIcon.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+    <AssemblyName>Kadr</AssemblyName>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.HarfBuzz" Version="12.1.4" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Krivodeling.Localization.Avalonia" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
+    <PackageReference Include="Tesseract" Version="5.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/AppIcon.ico" />
+    <AvaloniaResource Include="Assets/AppIcon.png" />
+    <EmbeddedResource Include="../../assets/ocr/*.traineddata" LogicalName="Kadr.Ocr.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../LICENSES/*" LogicalName="Kadr.Licenses.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../THIRD-PARTY-NOTICES.md" LogicalName="Kadr.Licenses.THIRD-PARTY-NOTICES.md" />
+    <EmbeddedResource Include="Resources/ocr-languages.json" />
+    <EmbeddedResource Include="Resources/Localizations/*.json" />
+  </ItemGroup>
+  <Target Name="BundleWindowsNativeRuntime" BeforeTargets="GenerateSingleFileBundle" DependsOnTargets="PrepareForBundle" Condition="'$(PublishSingleFile)' == 'true'">
+    <Error Condition="!Exists('$(CrtDirectory)/vcruntime140.dll') or !Exists('$(CrtDirectory)/msvcp140.dll')" Text="Publish with eng/Publish.ps1 or pass -p:CrtDirectory pointing to the Visual C++ x64 redistributable directory." />
+    <ItemGroup>
+      <FilesToBundle Remove="@(FilesToBundle)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(FilesToBundle.RelativePath)', '^x86[\\/]')) or '%(FilesToBundle.Extension)' == '.pdb'" />
+      <_WindowsCrtFiles Include="$(CrtDirectory)/*.dll" />
+      <FilesToBundle Include="@(_WindowsCrtFiles)" RelativePath="%(_WindowsCrtFiles.Filename)%(_WindowsCrtFiles.Extension)" />
+    </ItemGroup>
+  </Target>
+</Project>

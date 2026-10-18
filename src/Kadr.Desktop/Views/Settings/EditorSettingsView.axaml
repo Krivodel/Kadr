@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:i18n="https://codewf.com"
+             xmlns:vm="using:Kadr.Desktop.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Kadr.Desktop.Views.Settings.EditorSettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <Border VerticalAlignment="Top"
+            Classes="card">
+        <StackPanel Spacing="18">
+            <ToggleSwitch x:Name="AutoSelectSwitch"
+                          Classes="setting-row"
+                          AutomationProperties.Name="{i18n:I18n Kadr.AutoSelectElement}"
+                          Content="{i18n:I18n Kadr.AutoSelectElement}"
+                          IsChecked="{Binding AutoSelectCreatedElements}" />
+            <ToggleSwitch x:Name="ShowDrawingCursorSwitch"
+                          Classes="setting-row"
+                          AutomationProperties.Name="{i18n:I18n Kadr.ShowDrawingCursor}"
+                          Content="{i18n:I18n Kadr.ShowDrawingCursor}"
+                          IsChecked="{Binding ShowCursorWhileDrawing}" />
+            <ToggleSwitch Classes="setting-row"
+                          AutomationProperties.Name="{i18n:I18n Kadr.ExitImmediately}"
+                          Content="{Binding ExitImmediatelyLabel}"
+                          IsChecked="{Binding ExitImmediately}" />
+            <TextBlock Classes="muted"
+                       IsVisible="{Binding !CanToggleCapturedCursor}"
+                       Text="{i18n:I18n Kadr.EmbeddedCursorWarning}" />
+        </StackPanel>
+    </Border>
+</UserControl>

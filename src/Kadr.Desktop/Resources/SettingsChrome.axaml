@@ -1,0 +1,113 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <ControlTheme x:Key="KadrColorChrome"
+                      TargetType="WindowDrawnDecorations">
+            <Setter Property="DefaultTitleBarHeight"
+                    Value="48" />
+            <Setter Property="Template">
+                <WindowDrawnDecorationsTemplate>
+                    <WindowDrawnDecorationsContent>
+                        <WindowDrawnDecorationsContent.Overlay>
+                            <Grid Height="{TemplateBinding TitleBarHeight}"
+                                  VerticalAlignment="Top"
+                                  Background="#101927"
+                                  ColumnDefinitions="*,48"
+                                  WindowDecorationProperties.ElementRole="TitleBar">
+                                <TextBlock Margin="20,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="22"
+                                           FontWeight="SemiBold"
+                                           IsHitTestVisible="False"
+                                           Text="{TemplateBinding Title}" />
+                                <Button x:Name="PART_CloseButton"
+                                        Grid.Column="1"
+                                        Height="48"
+                                        Width="48"
+                                        Classes="subtle danger"
+                                        Theme="{StaticResource KadrButton}"
+                                        CornerRadius="0"
+                                        Cursor="Hand"
+                                        FontSize="22"
+                                        WindowDecorationProperties.ElementRole="User"
+                                        Content="×" />
+                            </Grid>
+                        </WindowDrawnDecorationsContent.Overlay>
+                    </WindowDrawnDecorationsContent>
+                </WindowDrawnDecorationsTemplate>
+            </Setter>
+        </ControlTheme>
+        <ControlTheme x:Key="KadrSettingsChrome"
+                      TargetType="WindowDrawnDecorations">
+            <Setter Property="DefaultTitleBarHeight"
+                    Value="56" />
+            <Setter Property="Template">
+                <WindowDrawnDecorationsTemplate>
+                    <WindowDrawnDecorationsContent>
+                        <WindowDrawnDecorationsContent.Underlay>
+                            <Border x:Name="PART_TitleBar"
+                                    Height="{TemplateBinding TitleBarHeight}"
+                                    VerticalAlignment="Top"
+                                    IsVisible="{TemplateBinding HasTitleBar}"
+                                    Background="#101927"
+                                    WindowDecorationProperties.ElementRole="TitleBar" />
+                        </WindowDrawnDecorationsContent.Underlay>
+                        <WindowDrawnDecorationsContent.Overlay>
+                            <Grid Height="{TemplateBinding TitleBarHeight}"
+                                  VerticalAlignment="Top"
+                                  IsVisible="{TemplateBinding HasTitleBar}"
+                                  ColumnDefinitions="*,Auto,Auto,Auto">
+                                <StackPanel Margin="16,0"
+                                            VerticalAlignment="Center"
+                                            IsHitTestVisible="False"
+                                            Orientation="Horizontal"
+                                            Spacing="12">
+                                    <Image Height="40"
+                                           Width="40"
+                                           Source="avares://Kadr/Assets/AppIcon.png" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontSize="32"
+                                               Foreground="#927CFF"
+                                               Text="Kadr" />
+                                </StackPanel>
+                                <Button x:Name="PART_MinimizeButton"
+                                        Grid.Column="1"
+                                        Height="56"
+                                        Width="48"
+                                        Classes="subtle"
+                                        Theme="{StaticResource KadrButton}"
+                                        CornerRadius="0"
+                                        Cursor="Hand"
+                                        FontSize="20"
+                                        WindowDecorationProperties.ElementRole="User"
+                                        Content="−" />
+                                <Button x:Name="PART_MaximizeButton"
+                                        Grid.Column="2"
+                                        Height="56"
+                                        Width="48"
+                                        Classes="subtle"
+                                        Theme="{StaticResource KadrButton}"
+                                        CornerRadius="0"
+                                        Cursor="Hand"
+                                        FontSize="18"
+                                        WindowDecorationProperties.ElementRole="User"
+                                        Content="□" />
+                                <Button x:Name="PART_CloseButton"
+                                        Grid.Column="3"
+                                        Height="56"
+                                        Width="48"
+                                        Classes="subtle danger"
+                                        Theme="{StaticResource KadrButton}"
+                                        CornerRadius="0"
+                                        Cursor="Hand"
+                                        FontSize="20"
+                                        WindowDecorationProperties.ElementRole="User"
+                                        Content="×" />
+                            </Grid>
+                        </WindowDrawnDecorationsContent.Overlay>
+                    </WindowDrawnDecorationsContent>
+                </WindowDrawnDecorationsTemplate>
+            </Setter>
+        </ControlTheme>
+    </Styles.Resources>
+</Styles>

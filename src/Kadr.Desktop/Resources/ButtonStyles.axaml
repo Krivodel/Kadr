@@ -1,0 +1,64 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ControlTheme x:Key="KadrButton" TargetType="Button">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid>
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" />
+            <Border Name="SelectedLayer" Classes="state-layer" Background="#3B526F" CornerRadius="{TemplateBinding CornerRadius}"
+                    Opacity="0" IsHitTestVisible="False" />
+            <Border Name="HoverLayer" Classes="state-layer" Background="#A0AEC8" CornerRadius="{TemplateBinding CornerRadius}"
+                    Opacity="0" IsHitTestVisible="False" />
+            <Border Name="PressedLayer" Classes="state-layer" Background="#B6CEEE" CornerRadius="{TemplateBinding CornerRadius}"
+                    Opacity="0" IsHitTestVisible="False" />
+            <Border Name="FocusLayer" Classes="state-layer" BorderBrush="#B3A6FF" BorderThickness="1" CornerRadius="{TemplateBinding CornerRadius}"
+                    Opacity="0" IsHitTestVisible="False" />
+            <ContentPresenter Name="PART_ContentPresenter" Padding="{TemplateBinding Padding}"
+                              Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="Button">
+    <Setter Property="Theme" Value="{StaticResource KadrButton}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Background" Value="#293445" />
+    <Setter Property="Foreground" Value="#EAF0FA" />
+    <Setter Property="Padding" Value="14,9" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button /template/ Border.state-layer">
+    <Setter Property="Transitions"><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.06" /></Transitions></Setter>
+  </Style>
+  <Style Selector="Button:pointerover /template/ Border#HoverLayer"><Setter Property="Opacity" Value="0.16" /></Style>
+  <Style Selector="Button:pressed /template/ Border#PressedLayer"><Setter Property="Opacity" Value="0.22" /></Style>
+  <Style Selector="Button:focus-visible /template/ Border#FocusLayer"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button:disabled"><Setter Property="Opacity" Value="0.38" /></Style>
+  <Style Selector="Button.primary"><Setter Property="Background" Value="#7563E8" /></Style>
+  <Style Selector="Button.tool">
+    <Setter Property="Width" Value="38" /><Setter Property="Height" Value="38" />
+    <Setter Property="Padding" Value="8" /><Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.tool.active /template/ Border#SelectedLayer"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button.danger /template/ Border#HoverLayer"><Setter Property="Background" Value="#E06076" /></Style>
+  <Style Selector="Button.swatch"><Setter Property="Padding" Value="0" /><Setter Property="BorderThickness" Value="0" /></Style>
+  <Style Selector="Button.swatch /template/ Border#SelectedLayer">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="#B5ABA1" /><Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Button.swatch /template/ Border#HoverLayer">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="#E7EDF6" /><Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Button.swatch /template/ Border#PressedLayer">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="#F8F3EF" /><Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Button.swatch.chosen /template/ Border#SelectedLayer"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button.swatch:pointerover /template/ Border#HoverLayer"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button.swatch:pressed /template/ Border#PressedLayer"><Setter Property="Opacity" Value="1" /></Style>
+</Styles>

@@ -1,0 +1,169 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:controls="using:Kadr.Desktop.Controls"
+        xmlns:i18n="https://codewf.com"
+        xmlns:scrolling="using:Kadr.Desktop.Controls.Scrolling"
+        xmlns:sections="using:Kadr.Desktop.Views.Settings"
+        xmlns:settings="using:Kadr.Desktop.Services.Settings"
+        xmlns:vm="using:Kadr.Desktop.ViewModels"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kadr.Desktop.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Height="840"
+        MinHeight="520"
+        MinWidth="800"
+        Width="940"
+        Classes="modern"
+        CanResize="True"
+        ExtendClientAreaTitleBarHeightHint="56"
+        ExtendClientAreaToDecorationsHint="True"
+        Title="Kadr"
+        WindowDecorations="Full"
+        WindowDecorationsTheme="{StaticResource KadrSettingsChrome}"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="0,56,0,0"
+          ColumnDefinitions="180,*">
+        <Popup x:Name="ShortcutRecordingHint"
+               Placement="Bottom"
+               ShouldUseOverlayLayer="True"
+               VerticalOffset="6">
+            <controls:AnimatedPopupPanel x:Name="RecordingHintPanel"
+                                         Padding="12"
+                                         Background="{StaticResource ComboBoxDropDownBackground}"
+                                         BorderBrush="{StaticResource PanelBorderBrush}"
+                                         BorderThickness="1"
+                                         CornerRadius="10"
+                                         IsHitTestVisible="False">
+                <StackPanel Spacing="8">
+                    <TextBlock FontSize="12"
+                               Text="{i18n:I18n Kadr.HoldSpaceToClear}" />
+                    <ProgressBar x:Name="ClearShortcutProgress"
+                                 Height="4"
+                                 IsVisible="False"
+                                 Background="#40506A"
+                                 Foreground="#8A75F5"
+                                 Maximum="1"
+                                 Minimum="0" />
+                </StackPanel>
+            </controls:AnimatedPopupPanel>
+        </Popup>
+        <Border Padding="14,28"
+                Background="#101927"
+                BorderBrush="#202D43"
+                BorderThickness="0,0,1,0">
+            <StackPanel Spacing="8">
+                <Button Classes="navigation"
+                        Classes.selected="{Binding IsGeneralSection}"
+                        Command="{Binding SelectSectionCommand}"
+                        CommandParameter="{x:Static settings:SettingsSection.General}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="12">
+                        <controls:VectorIcon Height="18"
+                                             Width="18"
+                                             Data="M4 5H20V17H4Z M8 21H16 M12 17V21" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{i18n:I18n Kadr.General}" />
+                    </StackPanel>
+                </Button>
+                <Button Classes="navigation"
+                        Classes.selected="{Binding IsEditorSection}"
+                        Command="{Binding SelectSectionCommand}"
+                        CommandParameter="{x:Static settings:SettingsSection.Editor}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="12">
+                        <controls:VectorIcon Height="18"
+                                             Width="18"
+                                             Data="M4 20L5 14L16 3L21 8L10 19Z M14 5L19 10" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{i18n:I18n Kadr.Editor}" />
+                    </StackPanel>
+                </Button>
+                <Button Classes="navigation"
+                        Classes.selected="{Binding IsToolbarSection}"
+                        Command="{Binding SelectSectionCommand}"
+                        CommandParameter="{x:Static settings:SettingsSection.Toolbar}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="12">
+                        <controls:VectorIcon Height="18"
+                                             Width="18"
+                                             Data="M3 4H10V11H3Z M14 4H21V11H14Z M3 15H10V22H3Z M14 15H21V22H14Z" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{i18n:I18n Kadr.Toolbar}" />
+                    </StackPanel>
+                </Button>
+                <Button Classes="navigation"
+                        Classes.selected="{Binding IsShortcutsSection}"
+                        Command="{Binding SelectSectionCommand}"
+                        CommandParameter="{x:Static settings:SettingsSection.Shortcuts}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="12">
+                        <controls:VectorIcon Height="18"
+                                             Width="18"
+                                             Data="M3 6H21V18H3Z M6 10H7 M11 10H12 M16 10H17 M7 14H17" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{i18n:I18n Kadr.Keys}" />
+                    </StackPanel>
+                </Button>
+                <Button Classes="navigation"
+                        Classes.selected="{Binding IsRecognitionSection}"
+                        Command="{Binding SelectSectionCommand}"
+                        CommandParameter="{x:Static settings:SettingsSection.Recognition}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="12">
+                        <controls:VectorIcon Height="18"
+                                             Width="18"
+                                             Data="M4 8V4H8 M16 4H20V8 M20 16V20H16 M8 20H4V16 M8 16L12 8L16 16 M10 13H14" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{i18n:I18n Kadr.TextAndLanguages}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+        <Grid Grid.Column="1"
+              Margin="28,8,14,8"
+              RowDefinitions="Auto,*,Auto"
+              RowSpacing="6">
+            <TextBlock FontSize="25"
+                       FontWeight="SemiBold"
+                       Text="{Binding SectionTitle}" />
+            <scrolling:SoftScrollViewer x:Name="SectionScroll"
+                                        Grid.Row="1"
+                                        Padding="0,0,12,0"
+                                        IsEnabled="{Binding !IsLoading}"
+                                        scrolling:SmoothScrollBehavior.IsEnabled="True">
+                <Grid Margin="{x:Static scrolling:SoftScrollViewer.ContentInsets}">
+                    <sections:GeneralSettingsView IsVisible="{Binding IsGeneralSection}" />
+                    <sections:EditorSettingsView IsVisible="{Binding IsEditorSection}" />
+                    <sections:ToolbarSettingsView IsVisible="{Binding IsToolbarSection}" />
+                    <sections:ShortcutSettingsView IsVisible="{Binding IsShortcutsSection}" />
+                    <sections:RecognitionSettingsView IsVisible="{Binding IsRecognitionSection}" />
+                </Grid>
+            </scrolling:SoftScrollViewer>
+            <StackPanel Grid.Row="2"
+                        Spacing="8">
+                <TextBlock IsVisible="{Binding HasErrorMessage}"
+                           Foreground="{StaticResource ErrorTextBrush}"
+                           TextWrapping="Wrap"
+                           Text="{Binding ErrorMessage}" />
+                <Grid HorizontalAlignment="Left"
+                      Width="{Binding #SectionScroll.Viewport.Width}"
+                      ColumnDefinitions="*,Auto,Auto"
+                      ColumnSpacing="10">
+                    <ProgressBar Height="3"
+                                 HorizontalAlignment="Left"
+                                 Width="100"
+                                 IsVisible="{Binding IsLoading}"
+                                 IsIndeterminate="True" />
+                    <Button Grid.Column="1"
+                            Classes="subtle"
+                            Click="OnCancel"
+                            Content="{i18n:I18n Kadr.Cancel}" />
+                    <Button Grid.Column="2"
+                            MinWidth="120"
+                            Classes="primary"
+                            Command="{Binding SaveCommand}"
+                            Content="{i18n:I18n Kadr.Save}" />
+                </Grid>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

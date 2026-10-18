@@ -1,0 +1,342 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <ControlTheme x:Key="KadrScrollThumb"
+                      TargetType="Thumb">
+            <Setter Property="MinHeight"
+                    Value="28" />
+            <Setter Property="Background"
+                    Value="#53637F" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Margin="2,0"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="5" />
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background"
+                        Value="#7186AA" />
+            </Style>
+        </ControlTheme>
+        <ControlTheme x:Key="KadrScrollPage"
+                      TargetType="RepeatButton">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+        <ControlTheme x:Key="KadrScrollBar"
+                      TargetType="ScrollBar">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="#142034"
+                            CornerRadius="5">
+                        <Track IsDirectionReversed="True"
+                               Maximum="{TemplateBinding Maximum}"
+                               Minimum="{TemplateBinding Minimum}"
+                               Orientation="{TemplateBinding Orientation}"
+                               ViewportSize="{TemplateBinding ViewportSize}"
+                               Value="{TemplateBinding Value, Mode=TwoWay}">
+                            <Track.DecreaseButton>
+                                <RepeatButton Theme="{StaticResource KadrScrollPage}"
+                                              Focusable="False"
+                                              Name="PART_PageUpButton" />
+                            </Track.DecreaseButton>
+                            <Track.IncreaseButton>
+                                <RepeatButton Theme="{StaticResource KadrScrollPage}"
+                                              Focusable="False"
+                                              Name="PART_PageDownButton" />
+                            </Track.IncreaseButton>
+                            <Track.Thumb>
+                                <Thumb Theme="{StaticResource KadrScrollThumb}" />
+                            </Track.Thumb>
+                        </Track>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+        <ControlTheme x:Key="KadrSwitch"
+                      TargetType="ToggleSwitch">
+            <Setter Property="HorizontalAlignment"
+                    Value="Stretch" />
+            <Setter Property="Background"
+                    Value="Transparent" />
+            <Setter Property="CornerRadius"
+                    Value="8" />
+            <Setter Property="ContentTemplate">
+                <DataTemplate x:DataType="x:String">
+                    <TextBlock TextWrapping="Wrap"
+                               Text="{Binding}" />
+                </DataTemplate>
+            </Setter>
+            <Setter Property="KnobTransitions">
+                <Transitions>
+                    <DoubleTransition Duration="0:0:0.10"
+                                      Property="Canvas.Left" />
+                </Transitions>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Grid MinHeight="40"
+                              Background="Transparent"
+                              ColumnDefinitions="42,*">
+                            <Border Grid.ColumnSpan="2"
+                                    Background="#FFFFFF"
+                                    CornerRadius="8"
+                                    IsHitTestVisible="False"
+                                    Name="RowHover"
+                                    Opacity="0">
+                                <Border.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Duration="0:0:0.10"
+                                                          Property="Opacity" />
+                                    </Transitions>
+                                </Border.Transitions>
+                            </Border>
+                            <ContentPresenter Grid.Column="1"
+                                              Margin="14,0,6,0"
+                                              VerticalAlignment="Center"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Content="{TemplateBinding Content}" />
+                            <Grid Height="24"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Width="42"
+                                  Background="Transparent">
+                                <Border Background="#344159"
+                                        CornerRadius="12" />
+                                <Border Background="#8A75F5"
+                                        CornerRadius="12"
+                                        Name="CheckedLayer"
+                                        Opacity="0">
+                                    <Border.Transitions>
+                                        <Transitions>
+                                            <DoubleTransition Duration="0:0:0.10"
+                                                              Property="Opacity" />
+                                        </Transitions>
+                                    </Border.Transitions>
+                                </Border>
+                                <Canvas>
+                                    <Grid Height="24"
+                                          Width="18"
+                                          Name="PART_SwitchKnob" />
+                                    <Grid Height="24"
+                                          Width="24"
+                                          Name="PART_MovingKnobs">
+                                        <Ellipse Height="16"
+                                                 Width="16"
+                                                 Fill="#F4F6FF" />
+                                    </Grid>
+                                </Canvas>
+                                <Border BorderBrush="#B3A6FF"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        IsHitTestVisible="False"
+                                        Name="SwitchFocus"
+                                        Opacity="0" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:pointerover /template/ Border#RowHover">
+                <Setter Property="Opacity"
+                        Value="0.035" />
+            </Style>
+            <Style Selector="^:checked /template/ Border#CheckedLayer">
+                <Setter Property="Opacity"
+                        Value="1" />
+            </Style>
+            <Style Selector="^:focus-visible /template/ Border#SwitchFocus">
+                <Setter Property="Opacity"
+                        Value="1" />
+            </Style>
+        </ControlTheme>
+    </Styles.Resources>
+    <Style Selector="Window.modern">
+        <Setter Property="Background"
+                Value="#0D1420" />
+        <Setter Property="Foreground"
+                Value="#EAF0FA" />
+        <Setter Property="FontSize"
+                Value="13" />
+    </Style>
+    <Style Selector="Window.modern Border.card">
+        <Setter Property="Background"
+                Value="#151F2F" />
+        <Setter Property="BorderBrush"
+                Value="#243148" />
+        <Setter Property="BorderThickness"
+                Value="1" />
+        <Setter Property="CornerRadius"
+                Value="14" />
+        <Setter Property="Padding"
+                Value="20" />
+    </Style>
+    <Style Selector="Window.modern TextBlock.muted">
+        <Setter Property="Foreground"
+                Value="#94A4BC" />
+        <Setter Property="TextWrapping"
+                Value="Wrap" />
+        <Setter Property="FontSize"
+                Value="12" />
+    </Style>
+    <Style Selector="Window.modern TextBlock.card-title">
+        <Setter Property="FontSize"
+                Value="15" />
+        <Setter Property="FontWeight"
+                Value="SemiBold" />
+    </Style>
+    <Style Selector="Window.modern TextBox, Window.modern NumericUpDown, Window.modern ComboBox">
+        <Setter Property="Background"
+                Value="{StaticResource InputBackgroundBrush}" />
+        <Setter Property="Foreground"
+                Value="{StaticResource InputForegroundBrush}" />
+        <Setter Property="BorderBrush"
+                Value="{StaticResource InputBorderBrush}" />
+        <Setter Property="BorderThickness"
+                Value="1" />
+        <Setter Property="CornerRadius"
+                Value="8" />
+        <Setter Property="MinHeight"
+                Value="36" />
+    </Style>
+    <Style Selector="Window.modern ToggleSwitch">
+        <Setter Property="Theme"
+                Value="{StaticResource KadrSwitch}" />
+        <Setter Property="Cursor"
+                Value="Hand" />
+    </Style>
+    <Style Selector="Window.modern ScrollViewer">
+        <Setter Property="AllowAutoHide"
+                Value="False" />
+        <Setter Property="HorizontalScrollBarVisibility"
+                Value="Disabled" />
+        <Setter Property="VerticalScrollBarVisibility"
+                Value="Auto" />
+    </Style>
+    <Style Selector="Window.modern ScrollBar:vertical">
+        <Setter Property="Theme"
+                Value="{StaticResource KadrScrollBar}" />
+        <Setter Property="Width"
+                Value="10" />
+        <Setter Property="MinWidth"
+                Value="10" />
+        <Setter Property="Margin"
+                Value="4,4,0,4" />
+    </Style>
+    <Style Selector="Window.modern ScrollBar /template/ Thumb">
+        <Setter Property="Background"
+                Value="#53637F" />
+    </Style>
+    <Style Selector="Button.navigation">
+        <Setter Property="Background"
+                Value="Transparent" />
+        <Setter Property="HorizontalAlignment"
+                Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment"
+                Value="Left" />
+        <Setter Property="Height"
+                Value="44" />
+        <Setter Property="Padding"
+                Value="14,8" />
+    </Style>
+    <Style Selector="Button.navigation /template/ Border#SelectedLayer">
+        <Setter Property="Background"
+                Value="#30294B" />
+    </Style>
+    <Style Selector="Button.navigation.selected /template/ Border#SelectedLayer">
+        <Setter Property="Opacity"
+                Value="1" />
+    </Style>
+    <Style Selector="Button.navigation.selected">
+        <Setter Property="Foreground"
+                Value="#C5BAFF" />
+    </Style>
+    <Style Selector="Button.subtle">
+        <Setter Property="Background"
+                Value="Transparent" />
+    </Style>
+    <Style Selector="Button.color-tab">
+        <Setter Property="Background"
+                Value="{StaticResource InputBackgroundBrush}" />
+        <Setter Property="BorderBrush"
+                Value="{StaticResource PanelBorderBrush}" />
+        <Setter Property="BorderThickness"
+                Value="1" />
+    </Style>
+    <Style Selector="Button.color-tab.selected /template/ Border#SelectedLayer">
+        <Setter Property="Background"
+                Value="#7563E8" />
+        <Setter Property="Opacity"
+                Value="1" />
+    </Style>
+    <Style Selector="Button.key-binding">
+        <Setter Property="Background"
+                Value="#1D2A40" />
+        <Setter Property="MinHeight"
+                Value="36" />
+        <Setter Property="Padding"
+                Value="8,6" />
+        <Setter Property="FontSize"
+                Value="12" />
+    </Style>
+    <Style Selector="Button.key-binding">
+        <Setter Property="ContentTemplate">
+            <DataTemplate x:DataType="x:String">
+                <TextBlock TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Text="{Binding}" />
+            </DataTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Window.modern ComboBox">
+        <Setter Property="Cursor"
+                Value="Hand" />
+    </Style>
+    <Style Selector="ComboBoxItem">
+        <Setter Property="Cursor"
+                Value="Hand" />
+        <Setter Property="CornerRadius"
+                Value="6" />
+        <Setter Property="Padding"
+                Value="12,9" />
+        <Setter Property="Margin"
+                Value="2" />
+    </Style>
+    <Style Selector="ComboBox /template/ Border#PopupBorder">
+        <Setter Property="BoxShadow"
+                Value="0 5 18 0 #70000000" />
+    </Style>
+    <Style Selector="ComboBox /template/ Border#Background, TextBox /template/ Border#PART_BorderElement">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Duration="0:0:0.10"
+                                 Property="Background" />
+                <BrushTransition Duration="0:0:0.10"
+                                 Property="BorderBrush" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleSwitch.setting-card">
+        <Setter Property="Background"
+                Value="#151F2F" />
+        <Setter Property="BorderBrush"
+                Value="#243148" />
+        <Setter Property="BorderThickness"
+                Value="1" />
+        <Setter Property="CornerRadius"
+                Value="14" />
+    </Style>
+    <Style Selector="ComboBox /template/ Popup#PART_Popup">
+        <Setter Property="ShouldUseOverlayLayer"
+                Value="True" />
+    </Style>
+</Styles>

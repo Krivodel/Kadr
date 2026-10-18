@@ -1,0 +1,211 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:controls="using:Kadr.Desktop.Controls"
+        xmlns:i18n="https://codewf.com"
+        xmlns:rendering="using:Kadr.Desktop.Services.Rendering"
+        xmlns:vm="using:Kadr.Desktop.ViewModels"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Kadr.Desktop.Views.EditorWindow"
+        x:DataType="vm:EditorViewModel"
+        Background="Black"
+        CanResize="False"
+        ShowInTaskbar="False"
+        Title="Kadr"
+        Topmost="True"
+        WindowDecorations="None">
+    <Window.Resources>
+        <DataTemplate x:Key="DrawingToolTemplate"
+                      x:DataType="rendering:DrawingTool">
+            <Button Classes="tool"
+                    AutomationProperties.Name="{Binding Name}"
+                    Command="{ReflectionBinding $parent[Window].DataContext.SelectToolCommand}"
+                    CommandParameter="{Binding}">
+                <controls:VectorIcon Data="{Binding Icon}"
+                                     IsBlurred="{Binding HasBlurredIcon}" />
+            </Button>
+        </DataTemplate>
+    </Window.Resources>
+    <Grid>
+        <controls:ScreenshotCanvas x:Name="Surface"
+                                   Focusable="True" />
+        <Canvas x:Name="Chrome">
+            <Border x:Name="Actions"
+                    Width="54"
+                    Classes="toolbar"
+                    IsHitTestVisible="False"
+                    Opacity="0">
+                <StackPanel Width="38"
+                            HorizontalAlignment="Center"
+                            Spacing="3">
+                    <Button Classes="tool"
+                            IsVisible="{Binding Toolbar.Copy}"
+                            AutomationProperties.Name="{i18n:I18n Kadr.Copy}"
+                            Command="{Binding CopyCommand}">
+                        <controls:VectorIcon Data="M16.5,7.5 V6 C16.5,3.7 15.3,2.5 13,2.5 H6 C3.7,2.5 2.5,3.7 2.5,6 V13 C2.5,15.3 3.7,16.5 6,16.5 H7.5 M10.5,7.5 H18.5 C20.5,7.5 21.5,8.5 21.5,10.5 V18.5 C21.5,20.5 20.5,21.5 18.5,21.5 H10.5 C8.5,21.5 7.5,20.5 7.5,18.5 V10.5 C7.5,8.5 8.5,7.5 10.5,7.5 Z" />
+                    </Button>
+                    <Button Classes="tool"
+                            IsVisible="{Binding Toolbar.Save}"
+                            AutomationProperties.Name="{i18n:I18n Kadr.SaveAs}"
+                            Command="{Binding SaveCommand}">
+                        <controls:VectorIcon Data="M13.5,2.5 H6 C3.5,2.5 2.5,3.5 2.5,6 V18 C2.5,20.5 3.5,21.5 6,21.5 H18 C20.5,21.5 21.5,20.5 21.5,18 V12 M3,16 L7.5,11.5 C8.2,10.8 9.3,10.8 10,11.5 L14,15.5 L16,13.5 C16.7,12.8 17.8,12.8 18.5,13.5 L21,16 M18.5,2.5 V9.5 M15.5,6.5 L18.5,9.5 L21.5,6.5" />
+                    </Button>
+                    <Button Classes="tool"
+                            IsVisible="{Binding Toolbar.Recognize}"
+                            AutomationProperties.Name="{i18n:I18n Kadr.Recognize}"
+                            Command="{Binding RecognizeCommand}">
+                        <controls:VectorIcon Data="M8 3H6C4 3 3 4 3 6V8 M16 3H18C20 3 21 4 21 6V8 M21 16V18C21 20 20 21 18 21H16 M8 21H6C4 21 3 20 3 18V16 M7 16L12 7L17 16 M9 13H15" />
+                    </Button>
+                    <Separator Width="30"
+                               HorizontalAlignment="Center"
+                               IsVisible="{Binding Toolbar.ActionsDivider}" />
+                    <Button Classes="tool"
+                            IsVisible="{Binding Toolbar.Settings}"
+                            AutomationProperties.Name="{i18n:I18n Kadr.Settings}"
+                            Command="{Binding SettingsCommand}">
+                        <controls:VectorIcon Data="M12,8.4 A3.6,3.6 0 1 0 12,15.6 A3.6,3.6 0 1 0 12,8.4 M12,2 L14,2.7 L14.4,5 L16.3,6.1 L18.5,5.3 L20.5,8.7 L18.8,10.2 L18.8,12.4 L20.5,13.9 L18.5,17.3 L16.3,16.5 L14.4,17.6 L14,20 L10,20 L9.6,17.6 L7.7,16.5 L5.5,17.3 L3.5,13.9 L5.2,12.4 L5.2,10.2 L3.5,8.7 L5.5,5.3 L7.7,6.1 L9.6,5 L10,2 Z"
+                                             IsFilled="True" />
+                    </Button>
+                    <Button Classes="tool danger"
+                            IsVisible="{Binding Toolbar.Cancel}"
+                            AutomationProperties.Name="{i18n:I18n Kadr.Cancel}"
+                            Command="{Binding CancelCommand}">
+                        <controls:VectorIcon Data="M6 6L18 18 M18 6L6 18" />
+                    </Button>
+                </StackPanel>
+            </Border>
+            <Border x:Name="ToolsPanel"
+                    Classes="toolbar"
+                    IsHitTestVisible="False"
+                    Opacity="0">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled">
+                    <StackPanel FlowDirection="RightToLeft"
+                                Orientation="Horizontal"
+                                Spacing="3">
+                        <Button Classes="tool"
+                                IsVisible="{Binding Toolbar.Redo}"
+                                AutomationProperties.Name="{i18n:I18n Kadr.Redo}"
+                                Command="{Binding RedoCommand}">
+                            <controls:VectorIcon Data="M16 5L21 10L16 15 M21 10H10A6 6 0 0 0 10 22" />
+                        </Button>
+                        <Button Classes="tool"
+                                IsVisible="{Binding Toolbar.Undo}"
+                                AutomationProperties.Name="{i18n:I18n Kadr.Undo}"
+                                Command="{Binding UndoCommand}">
+                            <controls:VectorIcon Data="M8 5L3 10L8 15 M3 10H14A6 6 0 0 1 14 22" />
+                        </Button>
+                        <Border Classes="divider"
+                                IsVisible="{Binding Toolbar.StyleDivider}" />
+                        <Button x:Name="ColorButton"
+                                Classes="tool"
+                                IsVisible="{Binding Toolbar.Color}"
+                                AutomationProperties.Name="{i18n:I18n Kadr.Color}"
+                                Click="OnColorClick">
+                            <Border x:Name="ColorSwatch"
+                                    Width="20"
+                                    Height="20"
+                                    CornerRadius="10" />
+                        </Button>
+                        <Button x:Name="ThicknessButton"
+                                Classes="tool"
+                                IsVisible="{Binding Toolbar.Thickness}"
+                                AutomationProperties.Name="{i18n:I18n Kadr.Thickness}">
+                            <controls:VectorIcon Data="M3 5H21 M3 11H21 M3 12H21 M3 17H21 M3 18H21 M3 19H21" />
+                        </Button>
+                        <Button x:Name="CursorButton"
+                                Classes="tool"
+                                IsVisible="{Binding Toolbar.Cursor}"
+                                AutomationProperties.Name="{i18n:I18n Kadr.Cursor}"
+                                Command="{Binding ToggleCursorCommand}">
+                            <controls:VectorIcon Data="M5 3L19 13L12 14L10 21Z" />
+                        </Button>
+                        <Border Classes="divider"
+                                IsVisible="{Binding Toolbar.LabelsDivider}" />
+                        <ItemsControl IsVisible="{Binding Toolbar.HasLabels}"
+                                      FlowDirection="RightToLeft"
+                                      ItemTemplate="{StaticResource DrawingToolTemplate}"
+                                      ItemsSource="{Binding LabelTools}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="3" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <Border Classes="divider"
+                                IsVisible="{Binding Toolbar.DrawingDivider}" />
+                        <ItemsControl IsVisible="{Binding Toolbar.HasDrawing}"
+                                      FlowDirection="RightToLeft"
+                                      ItemTemplate="{StaticResource DrawingToolTemplate}"
+                                      ItemsSource="{Binding DrawingTools}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"
+                                                Spacing="3" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+            <controls:PalettePanel x:Name="Palette"
+                                   Classes="toolbar"
+                                   IsHitTestVisible="False"
+                                   Opacity="0">
+                <StackPanel Spacing="8">
+                    <WrapPanel x:Name="PresetColors"
+                               Width="126" />
+                    <Button x:Name="CustomColorButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Click="OnCustomColorClick"
+                            Content="{i18n:I18n Kadr.CustomColor}" />
+                </StackPanel>
+            </controls:PalettePanel>
+            <Border x:Name="ThicknessPreview"
+                    Width="148"
+                    Height="150"
+                    Classes="floating-preview"
+                    IsHitTestVisible="False"
+                    Opacity="0"
+                    UseLayoutRounding="False">
+                <Border x:Name="ThicknessLine"
+                        Width="3"
+                        Height="110"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        BoxShadow="0 2 4 0 #8C000000"
+                        CornerRadius="999"
+                        UseLayoutRounding="False" />
+            </Border>
+            <TextBox x:Name="TextEntry"
+                     Padding="0"
+                     Classes="inline-text"
+                     IsVisible="False"
+                     AcceptsReturn="True"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     FontFamily="Segoe UI"
+                     Foreground="Transparent"
+                     SelectionBrush="#503F98FF"
+                     SelectionForegroundBrush="Transparent"
+                     TextWrapping="NoWrap" />
+        </Canvas>
+        <StackPanel MaxWidth="600"
+                    Margin="24"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Spacing="8">
+            <Border Padding="14,10"
+                    IsVisible="{Binding HasErrorMessage}"
+                    Background="#EE281C23"
+                    CornerRadius="8">
+                <TextBlock Foreground="{StaticResource ErrorTextBrush}"
+                           Text="{Binding ErrorMessage}"
+                           TextWrapping="Wrap" />
+            </Border>
+            <ProgressBar Height="3"
+                         IsVisible="{Binding IsLoading}"
+                         IsIndeterminate="True" />
+        </StackPanel>
+    </Grid>
+</Window>
