@@ -224,7 +224,7 @@ public sealed class EditorPolishUiTests
             using HttpClient http = new();
             SettingsStore store = new(NullLogger<SettingsStore>.Instance, Path.Combine(directory, "settings.json"));
             TestSettingsApplication application = new();
-            SettingsViewModel model = new(store, application, new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true, localization);
+            SettingsViewModel model = new(store, application, NullLogger<SettingsViewModel>.Instance, true, localization);
             SettingsWindow window = new() { DataContext = model };
             try
             {

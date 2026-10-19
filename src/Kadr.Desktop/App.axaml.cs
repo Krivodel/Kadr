@@ -48,13 +48,12 @@ public sealed partial class App : Application
             services.AddSingleton<ICaptureService>(provider => new DesktopCaptureService(provider.GetRequiredService<MonitorCaptureFactory>(), provider.GetRequiredService<ILogger<DesktopCaptureService>>()));
             services.AddSingleton<AutoStartService>();
             services.AddSingleton<ISettingsApplication, SettingsApplication>();
-            services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromMinutes(5) });
             services.AddHttpClient("Updates", client => client.Timeout = TimeSpan.FromHours(1));
             services.AddSingleton<IUpdateService>(provider => new GitHubUpdateService(provider.GetRequiredService<IHttpClientFactory>().CreateClient("Updates")));
             services.AddSingleton(new UpdateSessionStore(paths.UpdateSessionDirectory));
             services.AddSingleton<IViewModelErrorHandler, UpdateErrorHandler>();
-            services.AddSingleton(provider => new OcrModelStore(provider.GetRequiredService<HttpClient>(), paths.OcrDirectory));
-            services.AddSingleton<IOcrService, TesseractOcrService>();
+            services.AddSingleton(new PaddleModelStore(paths.OcrDirectory));
+            services.AddSingleton<IOcrService, PaddleOcrService>();
             services.AddSingleton(new DrawingToolRegistry());
             services.AddSingleton<IClipboardWriter, WindowsClipboardWriter>();
             services.AddSingleton<ImageFileWriter>();
@@ -68,7 +67,7 @@ public sealed partial class App : Application
                     provider.GetRequiredService<IFilePicker>(), provider.GetRequiredService<ImageFileWriter>(),
                     provider.GetRequiredService<IOcrService>(), provider.GetRequiredService<SettingsStore>(), provider.GetRequiredService<ILogger<EditorViewModel>>()),
                 canToggle => new SettingsViewModel(provider.GetRequiredService<SettingsStore>(), provider.GetRequiredService<ISettingsApplication>(),
-                    provider.GetRequiredService<OcrModelStore>(), provider.GetRequiredService<ILogger<SettingsViewModel>>(), canToggle,
+                    provider.GetRequiredService<ILogger<SettingsViewModel>>(), canToggle,
                     provider.GetRequiredService<ILocalizationService>()),
                 provider.GetRequiredService<ILogger<DesktopApplication>>(), lifetime, provider.GetRequiredService<ILocalizationService>(),
                 provider.GetRequiredService<IUpdateService>(), provider.GetRequiredService<UpdateSessionStore>(), provider.GetRequiredService<IViewModelErrorHandler>());

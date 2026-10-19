@@ -15,10 +15,9 @@ public sealed class SettingsViewModelTests
     {
         string directory = Path.Combine(Path.GetTempPath(), "Kadr-settings-ui-" + Guid.NewGuid().ToString("N"));
         string path = Path.Combine(directory, "settings.json");
-        using HttpClient http = new();
         SettingsStore store = new(NullLogger<SettingsStore>.Instance, path);
         TestSettingsApplication application = new();
-        SettingsViewModel model = new(store, application, new OcrModelStore(http, Path.Combine(AppContext.BaseDirectory, "tessdata")),
+        SettingsViewModel model = new(store, application,
             NullLogger<SettingsViewModel>.Instance, true);
         model.AutoSelectCreatedElements = true;
         model.ExitImmediately = true;

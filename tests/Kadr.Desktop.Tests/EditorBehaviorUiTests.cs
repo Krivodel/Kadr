@@ -291,7 +291,7 @@ public sealed class EditorBehaviorUiTests
         {
             using HttpClient http = new();
             SettingsStore settings = UiTestSession.CreateSettingsStore();
-            SettingsViewModel model = new(settings, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+            SettingsViewModel model = new(settings, new TestSettingsApplication(), NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model };
             window.Show();
             await UiTestSession.PumpFramesAsync(160);

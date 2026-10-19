@@ -113,9 +113,8 @@ public sealed class WindowCompositionTests
         await using HeadlessUnitTestSession session = HeadlessUnitTestSession.StartNew(typeof(UiTestSession));
         await session.Dispatch(() =>
         {
-            using HttpClient http = new();
             SettingsStore store = UiTestSession.CreateSettingsStore();
-            SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http),
+            SettingsViewModel model = new(store, new TestSettingsApplication(),
                 NullLogger<SettingsViewModel>.Instance, false);
             SettingsWindow window = new()
             {

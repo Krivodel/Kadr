@@ -32,9 +32,8 @@ public sealed class SettingsRefinementUiTests
         await using HeadlessUnitTestSession session = HeadlessUnitTestSession.StartNew(typeof(UiTestSession));
         await session.Dispatch(async () =>
         {
-            using HttpClient http = new();
             SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
-                new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+                 NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model };
             try
             {
@@ -78,9 +77,8 @@ public sealed class SettingsRefinementUiTests
         await using HeadlessUnitTestSession session = HeadlessUnitTestSession.StartNew(typeof(UiTestSession));
         await session.Dispatch(async () =>
         {
-            using HttpClient http = new();
             SettingsStore store = UiTestSession.CreateSettingsStore();
-            SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+            SettingsViewModel model = new(store, new TestSettingsApplication(),  NullLogger<SettingsViewModel>.Instance, true);
             ShortcutBindingViewModel binding = model.Shortcuts.Single(row => row.Action == EditorAction.Save);
             ShortcutGesture originalPrimary = binding.Gesture;
             ShortcutGesture? originalAlternative = binding.AlternativeGesture;
@@ -172,9 +170,8 @@ public sealed class SettingsRefinementUiTests
         await using HeadlessUnitTestSession session = HeadlessUnitTestSession.StartNew(typeof(UiTestSession));
         await session.Dispatch(async () =>
         {
-            using HttpClient http = new();
             SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
-                new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+                 NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model, Height = 600 };
             try
             {
@@ -215,9 +212,8 @@ public sealed class SettingsRefinementUiTests
         await using HeadlessUnitTestSession session = HeadlessUnitTestSession.StartNew(typeof(UiTestSession));
         await session.Dispatch(async () =>
         {
-            using HttpClient http = new();
             SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
-                new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+                 NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model, Width = width, Height = 600 };
             try
             {

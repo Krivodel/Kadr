@@ -3,5 +3,7 @@
 
 # Keep OCR models and raster assets byte-for-byte intact.
 *.traineddata binary
+*.onnx binary
+assets/ocr/**/*.txt binary
 *.png binary
 *.ico binary

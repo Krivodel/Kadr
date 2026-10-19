@@ -22,19 +22,22 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.9" />
     <PackageReference Include="NSec.Cryptography" Version="26.4.0" />
+    <PackageReference Include="RapidOcrNet" Version="4.2.0" ExcludeAssets="build;contentFiles" GeneratePathProperty="true" />
     <PackageReference Include="StageKit.Updatum" Version="0.4.1" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.9" />
     <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
     <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
-    <PackageReference Include="Tesseract" Version="5.2.0" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets/AppIcon.ico" />
     <AvaloniaResource Include="Assets/AppIcon.png" />
-    <EmbeddedResource Include="../../assets/ocr/*.traineddata" LogicalName="Kadr.Ocr.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../LICENSES/*" LogicalName="Kadr.Licenses.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../LICENSE" LogicalName="Kadr.Licenses.LICENSE" />
     <EmbeddedResource Include="../../THIRD-PARTY-NOTICES.md" LogicalName="Kadr.Licenses.THIRD-PARTY-NOTICES.md" />
-    <EmbeddedResource Include="Resources/ocr-languages.json" />
+    <EmbeddedResource Include="Resources/paddle-models.json" />
+    <EmbeddedResource Include="$(PkgRapidOcrNet)/models/v5/ch_PP-OCRv5_mobile_det.onnx" LogicalName="Kadr.Paddle.det.onnx" />
+    <EmbeddedResource Include="$(PkgRapidOcrNet)/models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx" LogicalName="Kadr.Paddle.cls.onnx" />
+    <EmbeddedResource Include="../../assets/ocr/paddle/*" LogicalName="Kadr.Paddle.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Resources/Updates/public-key.txt" LogicalName="Kadr.UpdatePublicKey" />
     <EmbeddedResource Include="Resources/Localizations/*.json" />
   </ItemGroup>
@@ -44,6 +47,11 @@
       <FilesToBundle Remove="@(FilesToBundle)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(FilesToBundle.RelativePath)', '^x86[\\/]')) or '%(FilesToBundle.Extension)' == '.pdb'" />
       <_WindowsCrtFiles Include="$(CrtDirectory)/*.dll" />
       <FilesToBundle Include="@(_WindowsCrtFiles)" RelativePath="%(_WindowsCrtFiles.Filename)%(_WindowsCrtFiles.Extension)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="ExcludeNativeImportLibraries" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.lib'" />
     </ItemGroup>
   </Target>
 </Project>

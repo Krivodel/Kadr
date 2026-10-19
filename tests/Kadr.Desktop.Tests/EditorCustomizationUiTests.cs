@@ -143,7 +143,7 @@ public sealed class EditorCustomizationUiTests
                     AlternativeShortcuts = new Dictionary<EditorAction, ShortcutGesture?> { [EditorAction.Cancel] = new ShortcutGesture(mouse ? 4 : 0x72, ShortcutModifiers.Control) }
                 }, CancellationToken.None);
                 using HttpClient http = new();
-                SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+                SettingsViewModel model = new(store, new TestSettingsApplication(), NullLogger<SettingsViewModel>.Instance, true);
                 SettingsWindow window = new() { DataContext = model };
                 window.Show();
                 await UiTestSession.PumpFramesAsync(100);
@@ -178,7 +178,7 @@ public sealed class EditorCustomizationUiTests
             using HttpClient http = new();
             TestSettingsApplication application = new();
             SettingsViewModel model = new(new SettingsStore(NullLogger<SettingsStore>.Instance, Path.Combine(directory, "settings.json")), application,
-                new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true, localization) { Section = SettingsSection.Editor };
+                NullLogger<SettingsViewModel>.Instance, true, localization) { Section = SettingsSection.Editor };
             SettingsWindow window = new() { DataContext = model };
             try
             {

@@ -5,6 +5,7 @@ namespace Kadr.Desktop.Services.Settings;
 
 internal sealed class SettingsDocument
 {
+    private const string RemovedOcrBackend = "OcrBackend";
     private static readonly JsonSerializerOptions SerializationOptions = new() { WriteIndented = true };
     private readonly JsonObject _root;
 
@@ -28,6 +29,12 @@ internal sealed class SettingsDocument
         }
 
         AppSettings settings = compatible.Deserialize<AppSettings>() ?? throw new JsonException("Settings are missing.");
+        if (settings.OcrLanguages is not null && settings.OcrLanguages.Any(language => !Services.Ocr.PaddleOcrService.SupportsLanguage(language)))
+        {
+            string[] languages = settings.OcrLanguages.Where(Services.Ocr.PaddleOcrService.SupportsLanguage).ToArray();
+            settings = settings with { OcrLanguages = languages.Length > 0 ? languages : new AppSettings().OcrLanguages };
+        }
+
         if (!compatible.ContainsKey(nameof(AppSettings.EditorShortcuts))
             && settings.CursorShortcut == new ShortcutGesture(0x48, ShortcutModifiers.None))
         {
@@ -51,6 +58,7 @@ internal sealed class SettingsDocument
         JsonObject updated = JsonSerializer.SerializeToNode(settings) as JsonObject
             ?? throw new JsonException("Settings could not be serialized.");
         JsonObject merged = (JsonObject)_root.DeepClone();
+        merged.Remove(RemovedOcrBackend);
         foreach (KeyValuePair<string, JsonNode?> property in updated)
         {
             JsonNode? value = property.Value?.DeepClone();

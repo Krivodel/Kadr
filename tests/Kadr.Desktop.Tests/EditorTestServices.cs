@@ -53,6 +53,6 @@ internal sealed class EditorTestServices : IClipboardWriter, IFilePicker, IOcrSe
 
     public Task<string> RecognizeAsync(SKBitmap image, IReadOnlyList<string> languages, CancellationToken ct)
     {
-        return OcrCompletion?.Task ?? Task.FromResult(OcrText);
+        return OcrCompletion?.Task.WaitAsync(ct) ?? Task.FromResult(OcrText);
     }
 }

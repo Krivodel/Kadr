@@ -14,7 +14,10 @@ public sealed class DistributionNoticesTests
             await DistributionNotices.ExportAsync(directory, CancellationToken.None);
 
             string notices = await File.ReadAllTextAsync(Path.Combine(directory, "THIRD-PARTY-NOTICES.md"));
-            Assert.Contains("Tesseract", notices);
+            Assert.Contains("PaddleOCR", notices);
+            string applicationLicense = await File.ReadAllTextAsync(Path.Combine(directory, "LICENSE"));
+            Assert.Contains("Copyright (c) 2026 Krivodel", applicationLicense);
+            Assert.Contains("Permission is hereby granted", applicationLicense);
             Assert.Contains("Distributable Code for Microsoft Visual Studio 2022", notices);
             Assert.Contains("https://aka.ms/vs/17/redist.txt", notices);
             Assert.Contains("Copyright", await File.ReadAllTextAsync(Path.Combine(directory, "Lang.Avalonia-MIT.txt")));

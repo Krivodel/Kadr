@@ -33,7 +33,7 @@ public sealed class EditorRefinementsUiTests
             using HttpClient http = new();
             SettingsStore store = new(NullLogger<SettingsStore>.Instance, Path.Combine(directory, "settings.json"));
             localization.Select(LocalizationConstants.RussianId);
-            SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true, localization);
+            SettingsViewModel model = new(store, new TestSettingsApplication(), NullLogger<SettingsViewModel>.Instance, true, localization);
             SettingsWindow window = new() { DataContext = model };
             try
             {

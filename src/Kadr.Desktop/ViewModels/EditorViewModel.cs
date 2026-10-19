@@ -202,7 +202,11 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Cancel()
     {
-        if (!IsLoading)
+        if (RecognizeCommand.IsRunning)
+        {
+            RecognizeCommand.Cancel();
+        }
+        else if (!IsLoading)
         {
             CloseRequested?.Invoke(this, EventArgs.Empty);
         }
@@ -306,7 +310,7 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(IncludeCancelCommand = true)]
     private async Task RecognizeAsync(CancellationToken ct)
     {
         await CompleteAsync(async image =>

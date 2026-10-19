@@ -75,8 +75,6 @@
       "PngFormat": "PNG — lossless",
       "JpegFormat": "JPEG — compressed, quality 95",
       "AutoStart": "Autostart",
-      "OcrLanguages": "Recognition languages",
-      "OcrHint": "Text is recognized on your computer. Russian and English are included; additional languages download when you save.",
       "FindLanguage": "Find a language by name or code",
       "FindAction": "Find an action",
       "ShortcutDevices": "Keyboard combinations and the middle mouse button are supported.",

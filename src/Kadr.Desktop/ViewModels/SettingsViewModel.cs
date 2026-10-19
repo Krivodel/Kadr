@@ -69,7 +69,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private readonly SettingsStore _store;
     private readonly ISettingsApplication _application;
-    private readonly OcrModelStore _models;
     private readonly ILogger<SettingsViewModel> _logger;
     private readonly ILocalizationService? _localization;
 
@@ -96,12 +95,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty][NotifyCanExecuteChangedFor(nameof(SaveCommand))] private bool _isLoading;
     [ObservableProperty][NotifyCanExecuteChangedFor(nameof(SaveCommand))] private bool _isRecordingShortcut;
 
-    public SettingsViewModel(SettingsStore store, ISettingsApplication application, OcrModelStore models,
+    public SettingsViewModel(SettingsStore store, ISettingsApplication application,
         ILogger<SettingsViewModel> logger, bool canToggleCursor, ILocalizationService? localization = null)
     {
         _store = store;
         _application = application;
-        _models = models;
         _logger = logger;
         CanToggleCapturedCursor = canToggleCursor;
         _localization = localization;
@@ -125,8 +123,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         Shortcuts = ShortcutCatalog.Definitions.Select(definition => new ShortcutBindingViewModel(definition,
             ShortcutCatalog.Get(settings, definition.Action), ShortcutCatalog.GetAlternative(settings, definition.Action))).ToArray();
         ExitShortcut.PropertyChanged += (sender, arguments) => OnPropertyChanged(nameof(ExitImmediatelyLabel));
-        Languages = models.Manifest.Languages.Select(language => new OcrLanguageViewModel(language.Code,
-            models.IsInstalled(language.Code), settings.OcrLanguages.Contains(language.Code, StringComparer.Ordinal))).OrderBy(language => language.Name).ToArray();
+        Languages = PaddleOcrService.SupportedLanguages.Select(code => new OcrLanguageViewModel(code,
+            settings.OcrLanguages.Contains(code, StringComparer.Ordinal))).OrderBy(language => language.Name).ToArray();
     }
 
     public void ReportShortcutRecordingFailure(Exception exception)
@@ -196,14 +194,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         try
         {
-            foreach (string language in languages)
-            {
-                if (!File.Exists(Path.Combine(_models.DirectoryPath, language + ".traineddata")))
-                {
-                    await _models.InstallAsync(language, ct);
-                }
-            }
-
             await _application.ApplyAsync(candidate with
             {
                 Backend = (CaptureBackend)BackendIndex,

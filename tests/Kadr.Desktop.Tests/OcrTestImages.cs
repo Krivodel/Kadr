@@ -1,11 +1,8 @@
-using Kadr.Desktop.Services.Ocr;
 using SkiaSharp;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace Kadr.Desktop.Tests;
 
-public sealed class OcrScreenshotTests
+internal static class OcrTestImages
 {
     private static readonly string[] Paragraphs = new string[]
     {
@@ -15,43 +12,7 @@ public sealed class OcrScreenshotTests
         "4. В прямоугольнике выделения скриншота не должно быть этих квадратиков с каждой стороны и с каждого угла, должна быть только пунктирная рамка."
     };
 
-    private readonly ITestOutputHelper _output;
-
-    public OcrScreenshotTests(ITestOutputHelper output)
-    {
-        _output = output;
-    }
-
-    [Theory]
-    [InlineData(14, false)]
-    [InlineData(16, true)]
-    public async Task RecognizeAsync_SmallWrappedNumberedRussianParagraphs_PreservesNumbersAndReflowsParagraphs(int fontSize, bool dark)
-    {
-        using SKBitmap image = CreateScreenshot(fontSize, dark);
-        using HttpClient http = new();
-        OcrModelStore models = new(http, Path.Combine(AppContext.BaseDirectory, "tessdata"));
-        TesseractOcrService service = new(models);
-
-        string text = await service.RecognizeAsync(image, new string[] { "rus", "eng" }, CancellationToken.None);
-
-        _output.WriteLine(text);
-        using SKBitmap prepared = OcrImagePreparation.Prepare(image);
-        string directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts"));
-        using SKData diagnostic = prepared.Encode(SKEncodedImageFormat.Png, 100);
-        File.WriteAllBytes(Path.Combine(directory, $"ocr-fixture-{fontSize}-{dark}.png"), diagnostic.ToArray());
-        string[] lines = text.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal(4, lines.Length);
-
-        for (int index = 0; index < lines.Length; index++)
-        {
-            Assert.StartsWith((index + 1) + ".", lines[index]);
-        }
-
-        Assert.Contains("до ужаса.", lines[0]);
-        Assert.Contains("пунктирная рамка", lines[3]);
-    }
-
-    private static SKBitmap CreateScreenshot(int fontSize, bool dark)
+    internal static SKBitmap CreateScreenshot(int fontSize, bool dark)
     {
         const int Width = 820;
         SKBitmap image = new(Width, 300);

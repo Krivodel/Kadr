@@ -61,6 +61,7 @@ $taskWarm = Get-Content -LiteralPath $taskWarmPath -Raw -Encoding UTF8 | Convert
 $taskCacheAfter = @(Get-ChildItem -LiteralPath $taskCache.FullName -Recurse -File | ForEach-Object { "$($_.FullName):$($_.Length):$($_.LastWriteTimeUtc.Ticks)" })
 if (@(Compare-Object $taskCacheBefore $taskCacheAfter).Count -ne 0) { throw 'The warm launch rewrote the native extraction cache.' }
 if (!$taskCold.Passed -or !$taskWarm.Passed) { throw 'Offline OCR verification failed.' }
+if (!$taskCold.PaddleOcrRecognized -or !$taskWarm.PaddleOcrRecognized) { throw 'Offline PaddleOCR verification failed.' }
 $taskForeignModules = @($taskCold.NativeModules | Where-Object { !$_.FileName.StartsWith($taskCache.FullName, [System.StringComparison]::OrdinalIgnoreCase) })
 if ($taskForeignModules.Count -ne 0) { throw 'A native OCR dependency was loaded outside the bundle cache.' }
 
@@ -81,7 +82,7 @@ $taskSavedProfile = Get-Content -LiteralPath $taskProfileSettings -Raw -Encoding
 if ([string]::IsNullOrWhiteSpace($taskSavedProfile.LocalizationId) -or $taskSavedProfile.Thickness -ne 23 -or $taskSavedProfile.Color -ne 4279383126 -or $taskSavedProfile.AutoStart -ne $false) { throw 'Native settings verification did not preserve its isolated profile preferences.' }
 $taskCaptures = Get-Content -LiteralPath $taskCapturePath -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($taskCaptures.Count -ne 4 -or @($taskCaptures | Where-Object { !$_.Passed }).Count -ne 0) { throw 'DXGI freshness verification failed.' }
-foreach ($taskLicense in @(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'LICENSES') -File) + @(Get-Item -LiteralPath (Join-Path $taskRoot 'THIRD-PARTY-NOTICES.md'))) {
+foreach ($taskLicense in @(Get-ChildItem -LiteralPath (Join-Path $taskRoot 'LICENSES') -File) + @(Get-Item -LiteralPath (Join-Path $taskRoot 'THIRD-PARTY-NOTICES.md')) + @(Get-Item -LiteralPath (Join-Path $taskRoot 'LICENSE'))) {
     $taskExported = Join-Path $taskLicenses $taskLicense.Name
     if ((Get-FileHash -LiteralPath $taskLicense.FullName).Hash -ne (Get-FileHash -LiteralPath $taskExported).Hash) { throw "License mismatch: $($taskLicense.Name)" }
 }
@@ -93,6 +94,7 @@ $taskResult = [pscustomobject]@{
     Bytes = $taskSource.Length
     NativeCacheReused = $true
     OfflineOcr = $true
+    OfflinePaddleOcr = $true
     NativeDependenciesFromBundle = $true
     IsolatedDirectoryContainsOnlyExe = $true
     UserSettingsUnchanged = $true

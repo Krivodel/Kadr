@@ -91,9 +91,8 @@ public sealed class UiStabilityTests
         await using HeadlessUnitTestSession session = HeadlessUnitTestSession.StartNew(typeof(UiTestSession));
         await session.Dispatch(async () =>
         {
-            using HttpClient http = new();
             SettingsViewModel model = new(UiTestSession.CreateSettingsStore(), new TestSettingsApplication(),
-                new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+                 NullLogger<SettingsViewModel>.Instance, true);
             model.Section = SettingsSection.Shortcuts;
             model.ShortcutQuery = model.Shortcuts[1].Name;
             SettingsWindow window = new() { DataContext = model };

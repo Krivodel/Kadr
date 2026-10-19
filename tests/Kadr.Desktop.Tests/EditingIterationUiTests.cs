@@ -247,7 +247,7 @@ public sealed class EditingIterationUiTests
         {
             using HttpClient http = new();
             SettingsStore store = UiTestSession.CreateSettingsStore();
-            SettingsViewModel model = new(store, new TestSettingsApplication(), new OcrModelStore(http), NullLogger<SettingsViewModel>.Instance, true);
+            SettingsViewModel model = new(store, new TestSettingsApplication(), NullLogger<SettingsViewModel>.Instance, true);
             SettingsWindow window = new() { DataContext = model };
             window.Show();
             await UiTestSession.PumpFramesAsync(80);
@@ -312,8 +312,6 @@ public sealed class EditingIterationUiTests
             ClickSection(window, SettingsSection.Recognition);
             await UiTestSession.PumpFramesAsync(80);
             RecognitionSettingsView recognition = window.GetVisualDescendants().OfType<RecognitionSettingsView>().Single();
-            Assert.DoesNotContain(recognition.GetVisualDescendants().OfType<TextBlock>(), text =>
-                text.Text == Resources.UiText.Get("Kadr.OcrLanguages") || text.Text == Resources.UiText.Get("Kadr.OcrHint"));
             ToggleSwitch language = recognition.GetVisualDescendants().OfType<ToggleSwitch>().First();
             OcrLanguageViewModel languageModel = Assert.IsType<OcrLanguageViewModel>(language.DataContext);
             bool before = languageModel.IsSelected;

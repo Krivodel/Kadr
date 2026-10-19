@@ -10,20 +10,18 @@ public sealed partial class OcrLanguageViewModel : ObservableObject
     {
         get;
     }
-    public string Name => _nativeName + (_installed ? UiText.Get("Kadr.InstalledSuffix") : string.Empty);
+    public string Name => _nativeName + UiText.Get("Kadr.InstalledSuffix");
 
     private readonly string _nativeName;
-    private readonly bool _installed;
 
     [ObservableProperty] private bool _isSelected;
 
-    public OcrLanguageViewModel(string code, bool installed, bool selected)
+    public OcrLanguageViewModel(string code, bool selected)
     {
         Code = code;
         string name = System.Globalization.CultureInfo.GetCultures(System.Globalization.CultureTypes.NeutralCultures)
             .FirstOrDefault(culture => string.Equals(culture.ThreeLetterISOLanguageName, code, StringComparison.OrdinalIgnoreCase))?.NativeName ?? code;
         _nativeName = name;
-        _installed = installed;
         IsSelected = selected;
     }
 

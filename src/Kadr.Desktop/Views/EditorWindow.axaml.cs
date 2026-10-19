@@ -563,6 +563,13 @@ public sealed partial class EditorWindow : Window
 
         if (_model.IsLoading)
         {
+            if (_model.RecognizeCommand.IsRunning
+                && ((arguments.Key == Key.Escape) || KeyboardGestures.Matches(arguments, _settings.Current, EditorAction.Cancel)))
+            {
+                _model.CancelCommand.Execute(null);
+                arguments.Handled = true;
+            }
+
             return;
         }
 

@@ -3,7 +3,6 @@ using System.Text.Json;
 
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
-using Tesseract;
 using NSec.Cryptography;
 using Kadr.Desktop.Services.Updates;
 
@@ -21,9 +20,6 @@ internal static class DistributionProbe
         Stopwatch watch = Stopwatch.StartNew();
         try
         {
-            using HttpClient http = new(new OfflineHttpHandler());
-            OcrModelStore models = new(http, directory);
-            bool availableOffline = models.IsInstalled("eng") && models.IsInstalled("rus");
             using SKBitmap image = new(900, 180);
             using (SKCanvas canvas = new(image))
             using (SKPaint paint = new() { Color = SKColors.Black, IsAntialias = true })
@@ -34,17 +30,17 @@ internal static class DistributionProbe
                 canvas.DrawText("Kadr screenshot 123", 30, 65, font, paint);
                 canvas.DrawText("Пример русского текста", 30, 135, font, paint);
             }
-            TesseractOcrService service = new(models);
+            PaddleOcrService service = new(new PaddleModelStore(directory));
+            Stopwatch engineWatch = Stopwatch.StartNew();
             string text = await service.RecognizeAsync(image, new string[] { "eng", "rus" }, ct).ConfigureAwait(false);
-            bool english = text.Contains("Kadr", StringComparison.OrdinalIgnoreCase);
-            bool russian = text.Contains("Пример", StringComparison.OrdinalIgnoreCase);
-            foreach (string code in new string[] { "eng", "rus" })
-            {
-                byte[] bytes = await File.ReadAllBytesAsync(Path.Combine(directory, code + ".traineddata"), ct).ConfigureAwait(false);
-                OcrModelStore.Verify(bytes, models.Manifest.Languages.Single(language => language.Code == code));
-            }
+            bool recognized = text.Contains("Kadr", StringComparison.OrdinalIgnoreCase)
+                && text.Contains("Пример", StringComparison.OrdinalIgnoreCase);
+            double recognitionElapsedMs = engineWatch.Elapsed.TotalMilliseconds;
+            bool removedResourcesAbsent = !typeof(DistributionProbe).Assembly.GetManifestResourceNames()
+                .Any(name => name.StartsWith("Kadr.Ocr.", StringComparison.Ordinal) || name.StartsWith("Kadr.PaddleMedium", StringComparison.Ordinal)
+                    || name.StartsWith("Kadr.PaddleServer", StringComparison.Ordinal));
             using Process process = Process.GetCurrentProcess();
-            string[] nativeNames = new string[] { "tesseract50.dll", "leptonica-1.82.0.dll", "libSkiaSharp.dll", "vcruntime140.dll", "msvcp140.dll" };
+            string[] nativeNames = new string[] { "libSkiaSharp.dll", "vcruntime140.dll", "msvcp140.dll", "onnxruntime.dll", "onnxruntime_providers_shared.dll" };
             object[] nativeModules = process.Modules.Cast<ProcessModule>()
                 .Where(module => nativeNames.Contains(module.ModuleName, StringComparer.OrdinalIgnoreCase))
                 .Select(module => (object)new { module.ModuleName, module.FileName }).ToArray();
@@ -53,12 +49,14 @@ internal static class DistributionProbe
             byte[] signature = SignatureAlgorithm.Ed25519.Sign(signingKey, UpdateSignature.GetMessage("1.0.0", "Kadr-win-x64.exe", sampleHash));
             bool signatures = UpdateSignature.Verify(new UpdateSignatureManifest("1.0.0", "Kadr-win-x64.exe", sampleHash, Convert.ToBase64String(signature)),
                 "1.0.0", "Kadr-win-x64.exe", sampleHash, signingKey.PublicKey.Export(KeyBlobFormat.RawPublicKey));
-            bool passed = availableOffline && english && russian && signatures;
+            bool passed = recognized && signatures && removedResourcesAbsent;
             await File.WriteAllTextAsync(outputPath, JsonSerializer.Serialize(new
             {
-                Passed = passed, ModelsAvailableOffline = availableOffline, EnglishRecognized = english, RussianRecognized = russian,
+                Passed = passed, ModelsAvailableOffline = true,
+                PaddleOcrRecognized = recognized,
+                RemovedResourcesAbsent = removedResourcesAbsent, RecognitionElapsedMs = recognitionElapsedMs,
                 ModelChecksumsVerified = true, UpdateSignaturesAvailable = signatures, ElapsedMs = watch.Elapsed.TotalMilliseconds,
-                Executable = Environment.ProcessPath, AppContext.BaseDirectory, NativeDirectory = TesseractEnviornment.CustomSearchPath,
+                Executable = Environment.ProcessPath, AppContext.BaseDirectory,
                 NativeModules = nativeModules
             }, new JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
             return passed ? 0 : 1;
