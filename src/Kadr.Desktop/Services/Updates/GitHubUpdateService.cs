@@ -91,12 +91,12 @@ public sealed class GitHubUpdateService : IUpdateService, IDisposable
     }
 
     [UnconditionalSuppressMessage("SingleFile", "IL3000", Justification = "Assembly.Location is intentionally used to reject updates in unpackaged development builds.")]
-    public async Task InstallAsync(string sessionId, CancellationToken ct)
+    public async Task InstallAsync(string? sessionId, CancellationToken ct)
     {
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (!Guid.TryParseExact(sessionId, "N", out _))
+            if (sessionId is not null && !Guid.TryParseExact(sessionId, "N", out _))
             {
                 throw new ArgumentException("Invalid session identifier.", nameof(sessionId));
             }
@@ -111,8 +111,9 @@ public sealed class GitHubUpdateService : IUpdateService, IDisposable
                 check.WriteByte(0);
             }
             _manager.InstallUpdateInjectCustomScript = UpdateRestartScript.Create(Environment.ProcessId);
+            string restartArguments = sessionId is null ? "--silent" : "--resume-update " + sessionId;
             bool started = await _manager.InstallUpdateAsync(_download ?? throw new InvalidOperationException("No verified update is ready."),
-                false, "--resume-update " + sessionId, ct).ConfigureAwait(false);
+                false, restartArguments, ct).ConfigureAwait(false);
             if (!started)
             {
                 throw new IOException("The update installer could not be started.");

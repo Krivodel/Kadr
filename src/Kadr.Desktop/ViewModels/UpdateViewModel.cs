@@ -14,7 +14,8 @@ public sealed partial class UpdateViewModel : ObservableObject, IDisposable
     public string Title => UiText.Format("Kadr.UpdateAvailable", Version);
 
     private readonly IUpdateService _service;
-    private readonly Func<CancellationToken, Task<string>> _saveSession;
+    private readonly Func<CancellationToken, Task<string?>> _saveSession;
+    private readonly Func<CancellationToken, Task>? _waitForEditor;
     private readonly Action _restart;
     private readonly IViewModelErrorHandler _errors;
     private readonly Action<string>? _discardSession;
@@ -29,22 +30,24 @@ public sealed partial class UpdateViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _isOpen;
     [ObservableProperty][NotifyPropertyChangedFor(nameof(Title))] private string _version = "";
     [ObservableProperty][NotifyPropertyChangedFor(nameof(ShowConfirmation))]
-    [NotifyCanExecuteChangedFor(nameof(ApplyCommand))][NotifyCanExecuteChangedFor(nameof(DismissCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCommand))]
     private bool _isLoading;
-    [ObservableProperty] private bool _isPreparingRestart;
+    [ObservableProperty][NotifyCanExecuteChangedFor(nameof(DismissCommand))] private bool _isPreparingRestart;
     [ObservableProperty] private bool _isIndeterminate;
     [ObservableProperty] private double _percentage;
     [ObservableProperty] private string _status = "";
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasErrorMessage))] private string? _errorMessage;
 
-    public UpdateViewModel(IUpdateService service, Func<CancellationToken, Task<string>> saveSession,
-        Action restart, IViewModelErrorHandler errors, Action<string>? discardSession = null)
+    public UpdateViewModel(IUpdateService service, Func<CancellationToken, Task<string?>> saveSession,
+        Action restart, IViewModelErrorHandler errors, Action<string>? discardSession = null,
+        Func<CancellationToken, Task>? waitForEditor = null)
     {
         _service = service;
         _saveSession = saveSession;
         _restart = restart;
         _errors = errors;
         _discardSession = discardSession;
+        _waitForEditor = waitForEditor;
     }
 
     public void SetRelease(UpdateRelease? release)
@@ -88,7 +91,7 @@ public sealed partial class UpdateViewModel : ObservableObject, IDisposable
     [RelayCommand(CanExecute = nameof(CanDismiss))]
     private void Dismiss()
     {
-        if (!IsLoading)
+        if (!IsPreparingRestart)
         {
             IsOpen = false;
         }
@@ -96,7 +99,7 @@ public sealed partial class UpdateViewModel : ObservableObject, IDisposable
 
     private bool CanDismiss()
     {
-        return !IsLoading;
+        return !IsPreparingRestart;
     }
 
     private bool CanApply()
@@ -137,6 +140,11 @@ public sealed partial class UpdateViewModel : ObservableObject, IDisposable
                 }
             });
             await _service.DownloadAsync(progress, _stop.Token);
+            if (_waitForEditor is not null)
+            {
+                await _waitForEditor(_stop.Token);
+            }
+            _stop.Token.ThrowIfCancellationRequested();
             _applying = true;
             IsPreparingRestart = true;
             IsIndeterminate = true;

@@ -83,6 +83,9 @@ public sealed partial class EditorWindow : Window
         Opened += OnOpened;
         Closed += OnClosed;
         ScalingChanged += OnScalingChanged;
+        SizeChanged += OnChromeSizeChanged;
+        Actions.SizeChanged += OnChromeSizeChanged;
+        ToolsPanel.SizeChanged += OnChromeSizeChanged;
         uint[] colors = new uint[] { 0xff000000, 0xffffffff, 0xffff0000, 0xffff8000, 0xffffff00, 0xff00ff00, 0xffa000ff, 0xff00ffff, 0xff0000ff };
 
         foreach (uint color in colors)
@@ -122,7 +125,19 @@ public sealed partial class EditorWindow : Window
     {
         _wheelSizeAnimator.Finish();
         CommitText();
-        CancelCanvasGesture();
+        if (_pointerGesture && _pointerPosition is PixelPoint position)
+        {
+            _model.Interaction.Complete(position, false, _isKeyDown(0x10) || _isKeyDown(0x11));
+            ReleaseCanvasPointer();
+            if (_model.Interaction.IsTextEditRequested)
+            {
+                _model.Interaction.SetText(_model.Interaction.SelectedElement?.Text ?? string.Empty);
+            }
+        }
+        else
+        {
+            CancelCanvasGesture();
+        }
         FinishThickness();
         SetPaletteVisible(false);
         _model.IsPreview = false;
@@ -134,6 +149,13 @@ public sealed partial class EditorWindow : Window
         {
             _layoutState = null;
         }
+        if (arguments.PropertyName == nameof(UpdateViewModel.IsPreparingRestart))
+        {
+            foreach (Window window in OwnedWindows)
+            {
+                window.IsEnabled = _model.Updates?.IsPreparingRestart != true;
+            }
+        }
         RequestChromeUpdate();
     }
 
@@ -141,7 +163,7 @@ public sealed partial class EditorWindow : Window
     {
         bool visible = _ownsUpdatePopup && _model.Updates is { IsOpen: true } && !_model.IsPreview && !_isClosing;
         FloatingPanelAnimator.SetVisible(UpdatePopup, visible);
-        Surface.IsHitTestVisible = _model.Updates?.IsLoading != true;
+        Surface.IsHitTestVisible = !_model.IsInputBlocked;
         if (!visible)
         {
             return;
@@ -186,8 +208,6 @@ public sealed partial class EditorWindow : Window
             return;
         }
 
-        UpdateUpdatePopup();
-
         if (_cursorHidden != _model.IsAdjustingThickness)
         {
             _cursorHidden = _model.IsAdjustingThickness;
@@ -215,7 +235,15 @@ public sealed partial class EditorWindow : Window
             }
         }
 
-        bool show = !_model.Document.Selection.IsEmpty && !_model.IsPreview && !_model.Interaction.IsGestureActive && !_model.IsLoading;
+        PixelRectangle selection = _model.Document.Selection;
+        double anchorGlobalX = selection.Right + _model.Document.Desktop.Bounds.X;
+        double anchorGlobalY = selection.Bottom + _model.Document.Desktop.Bounds.Y;
+        DesktopMonitor anchorMonitor = _model.Document.Desktop.Monitors.MinBy(monitor =>
+            Math.Pow(Math.Clamp(anchorGlobalX, monitor.Bounds.X, monitor.Bounds.Right) - anchorGlobalX, 2)
+            + Math.Pow(Math.Clamp(anchorGlobalY, monitor.Bounds.Y, monitor.Bounds.Bottom) - anchorGlobalY, 2)) ?? _monitor;
+        _ownsUpdatePopup = anchorMonitor.Handle == _monitor.Handle;
+        bool show = !selection.IsEmpty && _ownsUpdatePopup && !_model.IsPreview && !_model.Interaction.IsGestureActive && !_model.IsInputBlocked;
+        UpdateUpdatePopup();
 
         FloatingPanelAnimator.SetVisible(Actions, show && _model.Toolbar.HasActions);
         FloatingPanelAnimator.SetVisible(ToolsPanel, show && _model.Toolbar.HasTools);
@@ -232,27 +260,12 @@ public sealed partial class EditorWindow : Window
             SetPaletteVisible(false);
         }
 
-        PixelRectangle selection = _model.Document.Selection;
         (PixelRectangle Selection, Size ClientSize, double Scale) layout = (selection, ClientSize, RenderScaling);
         if (_layoutState == layout)
         {
             return;
         }
         _layoutState = layout;
-        double anchorGlobalX = selection.Right + _model.Document.Desktop.Bounds.X;
-        double anchorGlobalY = selection.Bottom + _model.Document.Desktop.Bounds.Y;
-        DesktopMonitor anchorMonitor = _model.Document.Desktop.Monitors.MinBy(monitor =>
-            Math.Pow(Math.Clamp(anchorGlobalX, monitor.Bounds.X, monitor.Bounds.Right) - anchorGlobalX, 2)
-            + Math.Pow(Math.Clamp(anchorGlobalY, monitor.Bounds.Y, monitor.Bounds.Bottom) - anchorGlobalY, 2)) ?? _monitor;
-
-        if (anchorMonitor.Handle != _monitor.Handle)
-        {
-            _ownsUpdatePopup = false;
-            UpdateUpdatePopup();
-            FloatingPanelAnimator.SetVisible(Actions, false);
-            FloatingPanelAnimator.SetVisible(ToolsPanel, false);
-            return;
-        }
 
         Point topLeft = ToLocal(new PixelPoint(selection.X, selection.Y));
         PixelRectangle localSelection = new(topLeft.X, topLeft.Y, selection.Width / RenderScaling, selection.Height / RenderScaling);
@@ -420,11 +433,17 @@ public sealed partial class EditorWindow : Window
         UpdateChrome();
     }
 
+    private void OnChromeSizeChanged(object? sender, SizeChangedEventArgs arguments)
+    {
+        _layoutState = null;
+        RequestChromeUpdate();
+    }
+
     private void OnEditorPointerPressed(object? sender, PointerPressedEventArgs arguments)
     {
         _wheelSizeAnimator.Finish();
         int key = KeyboardGestures.GetPressedMouseKey(arguments);
-        if (!_isClosing && !_model.IsLoading && key != 0
+        if (!_isClosing && !_model.IsInputBlocked && key != 0
             && KeyboardGestures.FindMouse(_settings.Current, arguments.KeyModifiers, key) is ShortcutDefinition shortcut)
         {
             if (shortcut.Action == EditorAction.Delete && !IsCanvasSource(arguments.Source))
@@ -439,7 +458,7 @@ public sealed partial class EditorWindow : Window
 
     private void OnCanvasPressed(object? sender, PointerPressedEventArgs arguments)
     {
-        if (_isClosing || _model.IsLoading)
+        if (_isClosing || _model.IsInputBlocked)
         {
             return;
         }
@@ -451,7 +470,9 @@ public sealed partial class EditorWindow : Window
         CommitText();
         SetPaletteVisible(false);
         _pointerGesture = true;
-        _model.Interaction.Begin(GetDocumentPointer(arguments), 7 * RenderScaling);
+        PixelPoint position = GetDocumentPointer(arguments);
+        _pointerPosition = position;
+        _model.Interaction.Begin(position, 7 * RenderScaling);
         _canvasPointer = arguments.Pointer;
         arguments.Pointer.Capture(Surface);
         UpdateChrome();
@@ -535,7 +556,7 @@ public sealed partial class EditorWindow : Window
     private void OnEditorKeyDown(object? sender, KeyEventArgs arguments)
     {
         _wheelSizeAnimator.Finish();
-        if (_isClosing)
+        if (_isClosing || _model.Updates?.IsPreparingRestart == true)
         {
             arguments.Handled = true;
             return;
@@ -761,7 +782,7 @@ public sealed partial class EditorWindow : Window
 
     private void OnCanvasWheel(object? sender, PointerWheelEventArgs arguments)
     {
-        if (_isClosing || _model.IsLoading || arguments.Delta.Y == 0 || (_model.Interaction.Tool is null && _model.Interaction.SelectedElement is null)
+        if (_isClosing || _model.IsInputBlocked || arguments.Delta.Y == 0 || (_model.Interaction.Tool is null && _model.Interaction.SelectedElement is null)
             || !IsCanvasSource(arguments.Source))
         {
             return;
@@ -821,8 +842,12 @@ public sealed partial class EditorWindow : Window
                 FinishThickness();
             }
         }
-        if (arguments.PropertyName == nameof(EditorViewModel.IsLoading))
+        if (arguments.PropertyName == nameof(EditorViewModel.IsInputBlocked))
         {
+            if (_model.Updates?.IsPreparingRestart == true)
+            {
+                PrepareForUpdate();
+            }
             UpdateChrome();
         }
         else

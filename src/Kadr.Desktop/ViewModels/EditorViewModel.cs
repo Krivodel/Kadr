@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 using Microsoft.Extensions.Logging;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -23,7 +25,23 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     {
         get;
     }
-    public UpdateViewModel? Updates { get; internal set; }
+    public UpdateViewModel? Updates
+    {
+        get => _updates;
+        internal set
+        {
+            if (_updates is not null)
+            {
+                _updates.PropertyChanged -= OnUpdateChanged;
+            }
+            SetProperty(ref _updates, value);
+            if (_updates is not null)
+            {
+                _updates.PropertyChanged += OnUpdateChanged;
+            }
+            NotifyInputStateChanged();
+        }
+    }
     public EditorInteraction Interaction
     {
         get;
@@ -38,7 +56,8 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     public IReadOnlyList<DrawingTool> DrawingTools => Toolbar.DrawingTools;
     public int VisibleToolCount => LabelTools.Count + DrawingTools.Count;
     public bool HasErrorMessage => !string.IsNullOrWhiteSpace(ErrorMessage);
-    public bool ShowOperationProgress => IsLoading && Updates?.IsLoading != true;
+    public bool ShowOperationProgress => IsLoading;
+    public bool IsInputBlocked => IsLoading || Updates?.IsPreparingRestart == true;
 
     public event EventHandler? CloseRequested;
     public event EventHandler? SettingsRequested;
@@ -50,6 +69,7 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     private readonly IOcrService _ocr;
     private readonly SettingsStore _settings;
     private readonly ILogger<EditorViewModel> _logger;
+    private UpdateViewModel? _updates;
 
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasErrorMessage))] private string? _errorMessage;
     [ObservableProperty][NotifyPropertyChangedFor(nameof(ShowOperationProgress))] private bool _isLoading;
@@ -193,6 +213,10 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        if (_updates is not null)
+        {
+            _updates.PropertyChanged -= OnUpdateChanged;
+        }
         History.Changed -= OnHistoryChanged;
         Interaction.Changed -= OnInteractionChanged;
         Renderer.Dispose();
@@ -202,6 +226,10 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Cancel()
     {
+        if (Updates?.IsPreparingRestart == true)
+        {
+            return;
+        }
         if (RecognizeCommand.IsRunning)
         {
             RecognizeCommand.Cancel();
@@ -215,14 +243,17 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Settings()
     {
-        SettingsRequested?.Invoke(this, EventArgs.Empty);
+        if (!IsInputBlocked)
+        {
+            SettingsRequested?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
     {
         Interaction.Cancel();
-        if (!IsLoading)
+        if (!IsInputBlocked)
         {
             History.Undo();
         }
@@ -232,7 +263,7 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     private void Redo()
     {
         Interaction.Cancel();
-        if (!IsLoading)
+        if (!IsInputBlocked)
         {
             History.Redo();
         }
@@ -278,7 +309,7 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task SaveAsync(CancellationToken ct)
     {
-        if (IsLoading || Document.Selection.IsEmpty)
+        if (IsInputBlocked || Document.Selection.IsEmpty)
         {
             return;
         }
@@ -329,17 +360,17 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
 
     private bool CanUndo()
     {
-        return History.CanUndo;
+        return !IsInputBlocked && History.CanUndo;
     }
 
     private bool CanRedo()
     {
-        return History.CanRedo;
+        return !IsInputBlocked && History.CanRedo;
     }
 
     private async Task CompleteAsync(Func<SKBitmap, Task<EditorActionOutcome>> operation, CancellationToken ct)
     {
-        if (IsLoading || Document.Selection.IsEmpty)
+        if (IsInputBlocked || Document.Selection.IsEmpty)
         {
             return;
         }
@@ -381,6 +412,20 @@ public sealed partial class EditorViewModel : ObservableObject, IDisposable
 
     partial void OnIsLoadingChanged(bool value)
     {
+        NotifyInputStateChanged();
+    }
+
+    private void OnUpdateChanged(object? sender, PropertyChangedEventArgs arguments)
+    {
+        if (arguments.PropertyName == nameof(UpdateViewModel.IsPreparingRestart))
+        {
+            NotifyInputStateChanged();
+        }
+    }
+
+    private void NotifyInputStateChanged()
+    {
+        OnPropertyChanged(nameof(IsInputBlocked));
         UndoCommand.NotifyCanExecuteChanged();
         RedoCommand.NotifyCanExecuteChanged();
     }

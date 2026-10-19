@@ -8,6 +8,7 @@ internal sealed class FakeUpdateService : IUpdateService
     internal Exception? DownloadError { get; set; }
     internal Exception? InstallError { get; set; }
     internal TaskCompletionSource? DownloadCompletion { get; set; }
+    internal TaskCompletionSource? InstallCompletion { get; set; }
     internal IProgress<UpdateProgress>? Progress { get; private set; }
     internal List<string> Operations { get; } = [];
 
@@ -30,13 +31,16 @@ internal sealed class FakeUpdateService : IUpdateService
         }
     }
 
-    public Task InstallAsync(string sessionId, CancellationToken ct)
+    public async Task InstallAsync(string? sessionId, CancellationToken ct)
     {
         Operations.Add("install:" + sessionId);
         if (InstallError is not null)
         {
             throw InstallError;
         }
-        return Task.CompletedTask;
+        if (InstallCompletion is not null)
+        {
+            await InstallCompletion.Task.WaitAsync(ct);
+        }
     }
 }

@@ -47,6 +47,7 @@
       "Alpha": "Alpha",
       "InvalidHex": "Enter 6 or 8 HEX characters: digits and A–F.",
       "Cancel": "Cancel",
+      "Close": "Close",
       "ChooseColor": "Choose color",
       "Recognize": "Recognize text",
       "SaveAs": "Save as",

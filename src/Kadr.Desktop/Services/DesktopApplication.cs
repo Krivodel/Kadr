@@ -45,6 +45,8 @@ internal sealed class DesktopApplication : IAsyncDisposable
     private readonly IUpdateService _updateService;
     private Task? _updateChecks;
     private bool _restarting;
+    private Task _captureOperation = Task.CompletedTask;
+    private Task _closingEditor = Task.CompletedTask;
 
     internal DesktopApplication(ICaptureService capture, GlobalHotkeyService hotkey, SettingsStore settings,
         Func<CapturedDesktop, EditorViewModel> createEditor, Func<bool, SettingsViewModel> createSettings,
@@ -61,7 +63,7 @@ internal sealed class DesktopApplication : IAsyncDisposable
         _localization = localization;
         _sessions = sessions;
         _updateService = updates;
-        _updates = new UpdateViewModel(updates, SaveUpdateSessionAsync, RestartAfterUpdate, updateErrors, _sessions.Complete);
+        _updates = new UpdateViewModel(updates, SaveUpdateSessionAsync, RestartAfterUpdate, updateErrors, _sessions.Complete, WaitForEditorAsync);
         _updates.PropertyChanged += OnUpdateChanged;
         NativeMenu menu = new();
         NativeMenuItem captureItem = new(UiText.Get("Kadr.Capture"));
@@ -170,12 +172,28 @@ internal sealed class DesktopApplication : IAsyncDisposable
         while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false));
     }
 
-    private async Task<string> SaveUpdateSessionAsync(CancellationToken ct)
+    private async Task WaitForEditorAsync(CancellationToken ct)
     {
-        EditorViewModel editor = _editor ?? throw new InvalidOperationException("The screenshot editor is closed.");
-        foreach (EditorWindow window in _editors)
+        while (true)
         {
-            window.PrepareForUpdate();
+            Task[] operations = new Task?[] { _captureOperation, _closingEditor,
+                _editor?.CopyCommand.ExecutionTask, _editor?.SaveCommand.ExecutionTask, _editor?.RecognizeCommand.ExecutionTask,
+                (_settingsWindow?.DataContext as SettingsViewModel)?.SaveCommand.ExecutionTask }
+                .OfType<Task>().Where(task => !task.IsCompleted).ToArray();
+            if (operations.Length == 0)
+            {
+                return;
+            }
+            await Task.WhenAll(operations).WaitAsync(ct);
+        }
+    }
+
+    private async Task<string?> SaveUpdateSessionAsync(CancellationToken ct)
+    {
+        EditorViewModel? editor = _editor;
+        if (editor is null)
+        {
+            return null;
         }
         await editor.RememberPreferencesAsync(ct);
         EditorSessionSnapshot snapshot = EditorSessionSnapshot.Capture(editor);
@@ -190,9 +208,9 @@ internal sealed class DesktopApplication : IAsyncDisposable
 
     private void OnUpdateChanged(object? sender, PropertyChangedEventArgs arguments)
     {
-        if (arguments.PropertyName == nameof(UpdateViewModel.IsLoading) && _editor is not null)
+        if (arguments.PropertyName == nameof(UpdateViewModel.IsPreparingRestart) && _settingsWindow is not null)
         {
-            _editor.IsLoading = _updates.IsLoading;
+            _settingsWindow.IsEnabled = !_updates.IsPreparingRestart;
         }
     }
 
@@ -251,7 +269,7 @@ internal sealed class DesktopApplication : IAsyncDisposable
 
     private async Task ActivateAsync()
     {
-        if (_updates.IsLoading)
+        if (_updates.IsPreparingRestart)
         {
             return;
         }
@@ -266,6 +284,12 @@ internal sealed class DesktopApplication : IAsyncDisposable
             CapturedDesktop desktop = await _capture.CaptureAsync(_stop.Token).ConfigureAwait(false);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                if (_updates.IsPreparingRestart)
+                {
+                    desktop.Dispose();
+                    Interlocked.Exchange(ref _capturing, 0);
+                    return;
+                }
                 OpenEditor(desktop);
                 _logger.LogInformation("Editor windows created after {ElapsedMs} ms; capture readback {ReadbackMs} ms",
                     Stopwatch.GetElapsedTime(desktop.Metrics.RequestedAt).TotalMilliseconds, desktop.Metrics.ReadbackMilliseconds);
@@ -281,6 +305,10 @@ internal sealed class DesktopApplication : IAsyncDisposable
 
     private void ShowSettings(string? error)
     {
+        if (_updates.IsPreparingRestart)
+        {
+            return;
+        }
         if (_settingsWindow is null)
         {
             SettingsViewModel model = _createSettings(_editor?.Document.Desktop.CanToggleCursor ?? true);
@@ -326,9 +354,9 @@ internal sealed class DesktopApplication : IAsyncDisposable
 
     private void OnCaptureRequested(object? sender, EventArgs arguments)
     {
-        if (_settingsWindow?.IsRecordingShortcut != true)
+        if (_settingsWindow?.IsRecordingShortcut != true && _captureOperation.IsCompleted)
         {
-            _ = ActivateAsync();
+            _captureOperation = ActivateAsync();
         }
     }
 
@@ -382,7 +410,16 @@ internal sealed class DesktopApplication : IAsyncDisposable
 
     private void OnEditorFinished(object? sender, EventArgs arguments)
     {
-        _ = CloseEditorAsync();
+        BeginClosingEditor();
+    }
+
+    private void BeginClosingEditor()
+    {
+        if (_closingEditor.IsCompleted)
+        {
+            _updates.DismissCommand.Execute(null);
+            _closingEditor = CloseEditorAsync();
+        }
     }
 
     private void OnEditorSettings(object? sender, EventArgs arguments)
@@ -403,9 +440,9 @@ internal sealed class DesktopApplication : IAsyncDisposable
         }
         arguments.Cancel = true;
 
-        if (_editor is { IsLoading: false })
+        if (_editor is { IsInputBlocked: false })
         {
-            _ = CloseEditorAsync();
+            BeginClosingEditor();
         }
     }
 }
