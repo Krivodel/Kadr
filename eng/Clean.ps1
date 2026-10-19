@@ -2,8 +2,8 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'CleanupPaths.ps1')
 $taskRoot = (Get-Item -LiteralPath (Split-Path $PSScriptRoot -Parent)).FullName
-$taskPrefix = $taskRoot.TrimEnd('\') + '\'
 $taskReportPath = Join-Path $taskRoot 'artifacts/verification.json'
 $taskReport = Get-Content -LiteralPath $taskReportPath -Raw | ConvertFrom-Json
 $taskExecutable = Get-Item -LiteralPath (Join-Path $taskRoot 'artifacts/single-file/Kadr.exe')
@@ -37,30 +37,13 @@ if (Test-Path -LiteralPath $taskInstaller) {
     $taskTargets.Add((Get-Item -LiteralPath $taskInstaller))
 }
 
-$taskProcesses = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($taskPrefix, [StringComparison]::OrdinalIgnoreCase) })
+$taskProcessPaths = @(Get-CleanupProcessPaths)
 $taskPlannedBytes = 0L
 $taskPlannedFiles = 0L
 foreach ($taskItem in $taskTargets) {
-    $taskAbsolute = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $taskItem.FullName).Path)
-    if (!$taskAbsolute.StartsWith($taskPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Cleanup target outside workspace: $taskAbsolute"
-    }
-    $taskAncestor = $taskItem
-    while ($null -ne $taskAncestor -and $taskAncestor.FullName.StartsWith($taskPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-        if (($taskAncestor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            throw "Reparse point in cleanup path: $($taskAncestor.FullName)"
-        }
-        $taskAncestor = if ($taskAncestor.PSIsContainer) { $taskAncestor.Parent } else { $taskAncestor.Directory }
-    }
-    if ($taskItem.PSIsContainer -and @(Get-ChildItem -LiteralPath $taskAbsolute -Recurse -Force -Attributes ReparsePoint).Count -gt 0) {
-        throw "Reparse point inside cleanup target: $taskAbsolute"
-    }
-    if (@($taskProcesses | Where-Object { $_.ExecutablePath.Equals($taskAbsolute, [StringComparison]::OrdinalIgnoreCase) -or $_.ExecutablePath.StartsWith($taskAbsolute.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0) {
-        throw "Exit the application using this directory before cleanup: $taskAbsolute"
-    }
-    $taskFiles = if ($taskItem.PSIsContainer) { @(Get-ChildItem -LiteralPath $taskAbsolute -Recurse -File -Force) } else { @($taskItem) }
-    $taskPlannedBytes += [long](($taskFiles | Measure-Object Length -Sum).Sum)
-    $taskPlannedFiles += $taskFiles.Count
+    $taskInfo = Get-CleanupTargetInfo -Path $taskItem.FullName -AllowedRoot $taskRoot -ProcessPaths $taskProcessPaths
+    $taskPlannedBytes += $taskInfo.Bytes
+    $taskPlannedFiles += $taskInfo.Files
 }
 
 $taskRemovedTargets = 0
